@@ -1,0 +1,26 @@
+[Atlas_info]
+/atlas/tileset.png
+950 256
+32 32
+20 30
+[ID_Matrix]
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  130 n 131 n 125 n 126 n 127 n 125 n 126 n 127 n 125 n 126 n 127 n 125 n 126 n 127 n 128 n 129 n -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  159 n 160 c 154 c 155 c 156 c 154 c 155 c 156 c 154 c 155 c 156 c 154 c 155 c 156 c 157 c 158 n -1 n  -1 n  -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  131 n 188 c 189 c 183 c 184 c 185 c 183 c 184 c 185 c 183 c 184 c 185 c 183 c 184 c 185 c 186 c 187 c 128 n 129 n -1 n
+-1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  -1 n  159 n 160 c 195 c 224 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 192 c 157 c 158 n -1 n
+125 n 126 n 127 n 125 n 126 n 127 n 125 n 126 n 127 n 188 c 189 c 223 c 224 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 186 c 187 c 128 n
+154 c 155 c 156 c 154 c 155 c 156 c 154 c 155 c 156 c 223 c 184 c 223 c 224 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 192 c 157 c
+183 c 184 c 185 c 183 c 184 c 185 c 183 c 184 c 185 c 184 c 185 c 223 c 224 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 221 c 222 c 186 c
+212 c 213 c 214 c 212 c 213 c 214 c 212 c 213 c 214 c 217 c 218 c 217 c 218 c 212 c 213 c 214 c 212 c 213 c 214 c 212 c 213 c 214 c 212 c 213 c 214 c 215 c 216 c 216 c 215 c 216 c

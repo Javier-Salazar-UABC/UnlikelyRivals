@@ -1,0 +1,37 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+
+
+
+jobs:
+      
+  crear-el-build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./
+    steps:
+    
+      - name: Checkout Repositorio
+        uses: actions/checkout@v5
+      
+      - name: Dependencias
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: 'latest'
+          
+      #- run: cd .. && git clone https://github.com/SFML/SFML.git
+      #- run: mkdir ../SFML/build
+      #- run: cd ../SFML/build/ && cmake ..
+      #- run: cd ../SFML/build && make && sudo make install
+
+      - name: Crear el build
+        run: mkdir ./build
+      - run: cd ./build && cmake .. -DCMAKE_BUILD_TYPE=Debug
+      
+      - name: Compilar código
+        run: cd ./build && cmake --build . --target CimaEngine3v
+      
