@@ -70,7 +70,7 @@ target_link_libraries(
 if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     message("Compilando con banderas de depuración")
     if(MSVC)
-        target_compile_options(CimaEngine3v PRIVATE  /W4 /Zi /WX)
+        target_compile_options(CimaEngine3v PRIVATE  /W3 /Zi)
     else()
         target_compile_options(CimaEngine3v PRIVATE  -ggdb -Wall -Wextra -Werror)
     endif()
