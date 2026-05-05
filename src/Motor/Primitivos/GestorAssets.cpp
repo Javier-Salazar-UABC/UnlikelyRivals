@@ -36,6 +36,7 @@ namespace CE
         textura->setSmooth(true);
         hashTexturas[key] = textura;
     }
+    /*
     void GestorAssets::agregarSonido(const std::string& key, const std::string& filepath)
     {   
         if(!sound_buffer.loadFromFile(filepath))
@@ -49,4 +50,5 @@ namespace CE
             std::cerr<<"No se pudo cargar la Música "<<filepath<<"\n";
         hashMusica[key] = musica;
     }
+    */
 }

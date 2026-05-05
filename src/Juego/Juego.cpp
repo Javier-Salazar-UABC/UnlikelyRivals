@@ -18,6 +18,7 @@
 #include <Juego/Escenas/Escena_Camara.hpp>
 #include <Juego/Escenas/Escena_SpriteTiles.hpp>
 #include <Juego/Escenas/Escena_Atlas.hpp>
+#include <Juego/Escenas/EscenaMenu2.hpp>
 #include <Juego/objetos/Entidad.hpp>
 
 
@@ -45,6 +46,7 @@ namespace IVJ
         CE::GestorEscenas::Get().registrarEscena("ECamara",std::make_shared<Escena_Camara>(jugador));
         CE::GestorEscenas::Get().registrarEscena("ESpriteTiles",std::make_shared<Escena_SpriteTiles>(jugadornave));
         CE::GestorEscenas::Get().registrarEscena("EAtlas",std::make_shared<Escena_Atlas>(jugadornave));
+        CE::GestorEscenas::Get().registrarEscena("Menu2",std::make_shared<EscenaMenu2>());
 
         //crear el jugador
         jugador = std::make_shared<Entidad>();
@@ -52,7 +54,7 @@ namespace IVJ
         jugadornave = std::make_shared<Entidad>();
         jugadornave->getStats()->hp = 100;
 
-        CE::GestorEscenas::Get().cambiarEscena("Menu"); //ejecuta onInit()A
+        CE::GestorEscenas::Get().cambiarEscena("Menu2"); //ejecuta onInit()A
         escena_actual = &CE::GestorEscenas::Get().getEscenaActual();
 
         CE::GestorCamaras::Get().agregarCamara(
