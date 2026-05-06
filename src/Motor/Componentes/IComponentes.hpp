@@ -388,11 +388,28 @@ namespace CE
     };
 
     /**
+     * @enum CollisionLayer
+     * @brief Capas de colisión para filtrar interacciones.
+     */
+    enum class CollisionLayer : uint32_t
+    {
+        NONE = 0,
+        PLAYER = 1 << 0,
+        ENEMY = 1 << 1,
+        PLAYER_ATTACK = 1 << 2,
+        ENEMY_ATTACK = 1 << 3,
+        GROUND = 1 << 4,
+        PROJECTILE = 1 << 5,
+        TRIGGER = 1 << 6,
+        ALL = 0xFFFFFFFF
+    };
+
+    /**
      * @class IBoundingBox
      * @brief Componente de colisión que define un área de límites rectangular.
      * 
-     * Almacena las dimensiones de la caja colisora y su punto medio
-     * para facilitar cálculos de colisión y detección espacial.
+     * Almacena las dimensiones de la caja colisora, su punto medio,
+     * y su capa/máscara de colisión para filtrar interacciones.
      */
     class IBoundingBox: public IComponentes
     {
@@ -400,14 +417,22 @@ namespace CE
             /**
              * @brief Constructor de la caja colisora.
              * @param dim Dimensiones de la caja (ancho y alto)
+             * @param l Capa de colisión a la que pertenece
+             * @param m Máscara de colisión (con qué capas colisiona)
              */
-            explicit IBoundingBox(const Vector2D& dim);
+            explicit IBoundingBox(const Vector2D& dim, CollisionLayer l = CollisionLayer::ALL, uint32_t m = (uint32_t)CollisionLayer::ALL);
             
             /** @brief Dimensiones totales de la caja colisora (ancho, alto) */
             Vector2D tam;
             
             /** @brief Mitad de las dimensiones (usado para cálculos rápidos) */
             Vector2D mitad;
+
+            /** @brief Capa de colisión a la que pertenece este objeto */
+            CollisionLayer layer;
+
+            /** @brief Máscara de bits que define con qué capas puede colisionar */
+            uint32_t mask;
     };
 
     /**

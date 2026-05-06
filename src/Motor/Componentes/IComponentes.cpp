@@ -137,8 +137,8 @@ namespace CE
         sacc=false;
     }
 
-    IBoundingBox::IBoundingBox(const Vector2D& dim)
-        :tam{dim},mitad{dim.x/2,dim.y/2}
+    IBoundingBox::IBoundingBox(const Vector2D& dim, CollisionLayer l, uint32_t m)
+        :tam{dim},mitad{dim.x/2,dim.y/2}, layer{l}, mask{m}
     {
     }
     IRespawn::IRespawn(std::vector<std::shared_ptr<IComponentes>>& lista_comp,int max):

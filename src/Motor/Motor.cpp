@@ -11,6 +11,7 @@
 #endif
 #include "Camaras/CamarasGestor.hpp"
 #include "Primitivos/GestorAssets.hpp"
+#include "Primitivos/GestorColisiones.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -75,6 +76,9 @@ namespace CE
         GestorAssets::Get().agregarFont("default_font",ASSETS "/fonts/Electrolize.ttf");
         GestorAssets::Get().agregarFont("nova",ASSETS "/fonts/NovaSquare.ttf");
 
+        // Cargar matriz de colisiones
+        GestorColisiones::Get().cargarConfiguracion(ASSETS "/config/collisions.txt");
+
         mi_app->OnInit();
 
         for(auto &gui: gui_layers)
@@ -107,6 +111,15 @@ namespace CE
 
 #if DEBUG
         GLogger::Get().OnUpdate(dt);
+        // Recargar matriz de colisiones con F5
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F5)) {
+            static float lastReload = 0;
+            lastReload += dt;
+            if (lastReload > 0.5f) { // Evitar múltiples recargas instantáneas
+                GestorColisiones::Get().recargar();
+                lastReload = 0;
+            }
+        }
 #endif
     }
     void Motor::OnRenderFrame()

@@ -102,7 +102,8 @@ namespace IVJ
 
         player->addComponente(std::make_shared<CE::IControl>());
         player->addComponente(std::make_shared<CE::IBoundingBox>(
-            CE::Vector2D{18*2.f,18*2.f} //dimensiones del sprite
+            CE::Vector2D{18*2.f,18*2.f}, //dimensiones del sprite
+            CE::CollisionLayer::PLAYER
         ));
         player->addComponente(std::make_shared<IGravedad>(1200.f, 600.f));
         player->addComponente(sprite);
@@ -127,7 +128,8 @@ namespace IVJ
 
         player2->addComponente(sprite2);
         player2->addComponente(std::make_shared<CE::IBoundingBox>(
-            CE::Vector2D{18*2.f, 18*2.f}
+            CE::Vector2D{18*2.f, 18*2.f},
+            CE::CollisionLayer::ENEMY
         ));
         player2->addComponente(std::make_shared<IGravedad>(1200.f, 600.f));
         objetos.agregarPool(player2);

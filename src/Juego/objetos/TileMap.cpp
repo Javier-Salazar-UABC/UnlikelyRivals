@@ -47,7 +47,7 @@ namespace IVJ
                     bloque->getStats()->hp = 100;
                     bloque->setPosicion(i*tile_w+hw,j*tile_h+hh);
                     bloque->addComponente(std::make_shared<CE::IBoundingBox>(
-                                CE::Vector2D{(float)tile_w,(float)tile_h}));
+                                CE::Vector2D{(float)tile_w,(float)tile_h}, CE::CollisionLayer::GROUND));
                     objetos.agregarPool(bloque);
                 }
 
@@ -164,7 +164,7 @@ namespace IVJ
                 bloque->getStats()->hp = 100;
                 //se le agrego x,y -----v
                 bloque->setPosicion((pos_init.x + i * tile_w + hw), (pos_init.y + j * tile_h + hh));
-                bloque->addComponente(std::make_shared<CE::IBoundingBox>(CE::Vector2D{(float)tile_w, (float)tile_h}));
+                bloque->addComponente(std::make_shared<CE::IBoundingBox>(CE::Vector2D{(float)tile_w, (float)tile_h}, CE::CollisionLayer::GROUND));
                 objetos.agregarPool(bloque);
             }
 

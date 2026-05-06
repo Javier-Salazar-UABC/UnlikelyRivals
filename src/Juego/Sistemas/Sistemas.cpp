@@ -6,6 +6,7 @@
 #include <math.h>
 #include "../../Motor/Utils/Lerp.hpp"
 #include "../../Motor/Render/Render.hpp"
+#include "../../Motor/Primitivos/GestorColisiones.hpp"
 #include <memory>
 
 
@@ -81,7 +82,14 @@ namespace IVJ
     {
         if(!A.tieneComponente<CE::IBoundingBox>() || !B.tieneComponente<CE::IBoundingBox>())
             return false;
-        auto mA = A.getComponente<CE::IBoundingBox>()->mitad;
+        auto boxA = A.getComponente<CE::IBoundingBox>();
+        auto boxB = B.getComponente<CE::IBoundingBox>();
+
+        // Check collision matrix
+        if (!CE::GestorColisiones::Get().puedenColisionar(boxA->layer, boxB->layer))
+            return false;
+
+        auto mA = boxA->mitad;
         auto *pa = &A.getTransformada()->posicion;
         auto prevA = A.getTransformada()->pos_prev;
         auto mB = B.getComponente<CE::IBoundingBox>()->mitad;
@@ -115,7 +123,14 @@ namespace IVJ
     {
         if(!A.tieneComponente<CE::IBoundingBox>() || !B.tieneComponente<CE::IBoundingBox>())
             return false;
-        auto midA = A.getComponente<CE::IBoundingBox>()->mitad;
+        auto boxA = A.getComponente<CE::IBoundingBox>();
+        auto boxB = B.getComponente<CE::IBoundingBox>();
+
+        // Check collision matrix
+        if (!CE::GestorColisiones::Get().puedenColisionar(boxA->layer, boxB->layer))
+            return false;
+
+        auto midA = boxA->mitad;
         auto *pa = &A.getTransformada()->posicion;
         auto prevA = A.getTransformada()->pos_prev;
         auto midB = B.getComponente<CE::IBoundingBox>()->mitad;
