@@ -224,4 +224,72 @@ namespace CE
 
         m_transform->posicion.y += (jpos.y - m_transform->posicion.y) * velocidad_y;
     }
+
+    CamaraSmash::CamaraSmash(const Vector2D& pos, const Vector2D& dim)
+        : Camara{pos, dim}, m_baseDim{dim}
+    {
+        nombre = "Camara Smash #" + std::to_string(Camara::num_camaras);
+    }
+
+    void CamaraSmash::agregarTarget(const std::shared_ptr<Objeto>& obj)
+    {
+        m_targets.push_back(obj);
+    }
+
+    void CamaraSmash::limpiarTargets()
+    {
+        m_targets.clear();
+    }
+
+    void CamaraSmash::onUpdate(float dt)
+    {
+        if (m_targets.empty()) return;
+
+        Vector2D minPos{99999, 99999};
+        Vector2D maxPos{-99999, -99999};
+        int activeTargets = 0;
+
+        for (auto& weakTarget : m_targets) {
+            if (auto target = weakTarget.lock()) {
+                Vector2D pos = target->getTransformada()->posicion;
+                if (pos.x < minPos.x) minPos.x = pos.x;
+                if (pos.y < minPos.y) minPos.y = pos.y;
+                if (pos.x > maxPos.x) maxPos.x = pos.x;
+                if (pos.y > maxPos.y) maxPos.y = pos.y;
+                activeTargets++;
+            }
+        }
+
+        if (activeTargets == 0) return;
+
+        // Centro entre objetivos
+        Vector2D center = (minPos + maxPos).escala(0.5f);
+        
+        // Suavizado del centro
+        m_transform->posicion = lerp(m_transform->posicion, center, 5.0f * dt);
+
+        // Calcular Zoom
+        float distDeltaX = std::abs(maxPos.x - minPos.x) + m_margin;
+        float distDeltaY = std::abs(maxPos.y - minPos.y) + m_margin;
+
+        float zoomX = distDeltaX / m_baseDim.x;
+        float zoomY = distDeltaY / m_baseDim.y;
+        float targetZoom = std::max(zoomX, zoomY);
+
+        // Clamp zoom
+        if (targetZoom < m_minZoom) targetZoom = m_minZoom;
+        if (targetZoom > m_maxZoom) targetZoom = m_maxZoom;
+
+        // Suavizado del zoom
+        sf::Vector2f currentSize = m_view->getSize();
+        sf::Vector2f targetSize = { m_baseDim.x * targetZoom, m_baseDim.y * targetZoom };
+        
+        m_view->setSize(sf::Vector2f(
+            lerp(currentSize.x, targetSize.x, 3.0f * dt),
+            lerp(currentSize.y, targetSize.y, 3.0f * dt)
+        ));
+
+        // Aplicar posición al view
+        m_view->setCenter({ m_transform->posicion.x, m_transform->posicion.y });
+    }
 }

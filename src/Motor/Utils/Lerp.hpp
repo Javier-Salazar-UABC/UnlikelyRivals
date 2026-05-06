@@ -16,6 +16,11 @@ namespace CE
      * 
      * @note Formula: resultado = init + (dest - init) * t
      */
+    template <typename T>
+    T lerp(const T& a, const T& b, float t) {
+        return a + (b - a) * t;
+    }
+
     Vector2D lerp(const Vector2D& init, const Vector2D& dest, float t);
     
     /**

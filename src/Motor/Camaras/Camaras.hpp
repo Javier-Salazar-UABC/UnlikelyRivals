@@ -208,4 +208,26 @@ namespace CE
         float objetivo_x = 0.0f;
         bool en_transicion = false;
     };
+
+    /**
+     * @class CamaraSmash
+     * @brief Cámara que sigue a múltiples objetivos y ajusta el zoom dinámicamente.
+     */
+    class CamaraSmash : public Camara
+    {
+    public:
+        CamaraSmash(const Vector2D& pos, const Vector2D& dim);
+        ~CamaraSmash() override = default;
+
+        void onUpdate(float dt) override;
+        void agregarTarget(const std::shared_ptr<Objeto>& obj);
+        void limpiarTargets();
+
+    private:
+        std::vector<std::weak_ptr<Objeto>> m_targets;
+        float m_minZoom = 0.5f;
+        float m_maxZoom = 2.0f;
+        float m_margin = 200.0f;
+        Vector2D m_baseDim;
+    };
 }

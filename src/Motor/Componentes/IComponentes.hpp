@@ -145,6 +145,9 @@ namespace CE
 
             /** @brief Porcentaje de daño recibido (como Smash) */
             float porcentaje_danio{0.0f};
+
+            /** @brief Contador de golpes recibidos */
+            int hit_count{0};
     };
 
     /**

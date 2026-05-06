@@ -21,9 +21,19 @@ namespace IVJ
     }
     void Escena_Atlas::onInit()
     {
-        CE::GestorCamaras::Get().setCamaraActiva(3);
-        //le decimos a quien persigue
-        CE::GestorCamaras::Get().getCamaraActiva().lockEnObjeto(player);
+        if(inicializar) {
+            auto smashCam = std::make_shared<CE::CamaraSmash>(CE::Vector2D{512, 360}, CE::Vector2D{1024, 720});
+            CE::GestorCamaras::Get().agregarCamara(smashCam);
+            CE::GestorCamaras::Get().setCamaraActiva(CE::Camara::num_camaras - 1);
+        }
+        
+        // La cámara activa debería ser la Smash ahora
+        auto& cam = CE::GestorCamaras::Get().getCamaraActiva();
+        if (auto* smash = dynamic_cast<CE::CamaraSmash*>(&cam)) {
+            smash->limpiarTargets();
+            smash->agregarTarget(player);
+            if (p2) smash->agregarTarget(p2);
+        }
         if(!inicializar) return;
 
         registrarBotones(sf::Keyboard::Scancode::W,"arriba");
@@ -136,10 +146,10 @@ namespace IVJ
         player->setFSM(me->fsm);
 
         // --- Jugador 2 (maniquí de prueba para testear golpes) ---
-        auto player2 = std::make_shared<Entidad>();
-        player2->setPosicion(420.f, 300.f);
-        player2->getTransformada()->velocidad = CE::Vector2D{120.f, 120.f};
-        player2->getStats()->porcentaje_danio = 0.f;
+        p2 = std::make_shared<Entidad>();
+        p2->setPosicion(420.f, 300.f);
+        p2->getTransformada()->velocidad = CE::Vector2D{120.f, 120.f};
+        p2->getStats()->porcentaje_danio = 0.f;
 
         auto sprite2 = std::make_shared<CE::ISprite>(
             CE::GestorAssets::Get().getTextura("esnupi_idle"),
@@ -147,13 +157,19 @@ namespace IVJ
         // Colorear en azul para distinguirlo del jugador 1
         sprite2->m_sprite.setColor(sf::Color{100, 180, 255, 255});
 
-        player2->addComponente(sprite2);
-        player2->addComponente(std::make_shared<CE::IBoundingBox>(
+        p2->addComponente(sprite2);
+        p2->addComponente(std::make_shared<CE::IBoundingBox>(
             CE::Vector2D{18*2.f, 18*2.f},
             CE::CollisionLayer::ENEMY
         ));
-        player2->addComponente(std::make_shared<IGravedad>(1200.f, 600.f));
-        objetos.agregarPool(player2);
+        p2->addComponente(std::make_shared<IGravedad>(1200.f, 600.f));
+        objetos.agregarPool(p2);
+
+        // Agregar a la cámara smash si es necesario (ya se hace en el dynamic_cast arriba pero por si acaso)
+        auto& camActiva = CE::GestorCamaras::Get().getCamaraActiva();
+        if (auto* s = dynamic_cast<CE::CamaraSmash*>(&camActiva)) {
+            s->agregarTarget(p2);
+        }
         // --------------------------------------------------------
 
         inicializar=false;
@@ -182,12 +198,19 @@ namespace IVJ
             SistemaColAABBMid(*player, *obj, true);
         }
 
+        // Sistema de partículas fuera de pantalla (Smash Bros style)
+        std::vector<std::shared_ptr<CE::Objeto>> targets;
+        targets.push_back(player);
+        if (p2) targets.push_back(p2);
+        SistemaLimitesPantalla(targets);
+
         // Segunda pasada: física de objetos dinámicos (los que tienen IGravedad)
         // y su colisión vs todos los tiles/objetos estáticos del pool
         for(auto& obj: objetos.getPool())
         {
             if(!obj->tieneComponente<IGravedad>()) continue;
 
+            SistemaMover(obj, dt);
             SistemaGravedad(obj, dt);
 
             // Resolver colisión de este objeto dinámico contra todos los demás del pool

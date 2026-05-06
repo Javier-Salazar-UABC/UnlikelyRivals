@@ -7,6 +7,8 @@
 #include "../../Motor/Utils/Lerp.hpp"
 #include "../../Motor/Render/Render.hpp"
 #include "../../Motor/Primitivos/GestorColisiones.hpp"
+#include "Motor/Camaras/CamarasGestor.hpp"
+#include "Juego/Maquinas/Naves/GolpearJugador.hpp"
 #include <memory>
 
 
@@ -50,32 +52,28 @@ namespace IVJ
         auto trans = objeto->getTransformada();
         auto control = objeto->getComponente<CE::IControl>();
 
-        //Si no tiene control o el control no esta activo salir
-        if(!control || !control->isActivo()) return;
+        float move_speed = 150.0f; // Velocidad base de caminata
+        float vel_x_final = 0.0f;
 
-        //definimos cual va ser la velocidad correcta dependiendo
-        //de que boton del control este presionado
-        auto vel = CE::Vector2D{0.f,0.f};
-        if(control->der) vel.x = trans->velocidad.x;
-        if(control->izq) vel.x = -trans->velocidad.x;
+        if (control && control->isActivo()) {
+            if (control->der) vel_x_final = move_speed;
+            if (control->izq) vel_x_final = -move_speed;
+            if (control->run) vel_x_final *= 1.6f;
 
-        if(control->run) vel.x *= 1.6f;
-
-        //calculamos la dirección usando un triángulo rectángulo
-        if(objeto->getComponente<ITriangulo>() || objeto->getComponente<CE::ISprite>())
-        {
-            if (vel.x!=0 || vel.y!=0) {
-                auto n = vel;
-                n.normalizacion();
-                auto trian = objeto->getComponente<ITriangulo>(); //nulo
-
-                if (trian)
-                    trian->angulo = std::atan2(n.x,-n.y);
-                trans->angulo = std::atan2(n.x,-n.y);
+            // Orientación del sprite basada en movimiento
+            if (objeto->tieneComponente<CE::ISprite>()) {
+                auto sprite = objeto->getComponente<CE::ISprite>();
+                if (vel_x_final > 0) sprite->m_sprite.setScale({sprite->escala, sprite->escala});
+                else if (vel_x_final < 0) sprite->m_sprite.setScale({-sprite->escala, sprite->escala});
             }
         }
-        //actualizamos la posición del ente.
-        trans->posicion.suma(vel.escala(dt));
+
+        // Aplicar velocidad persistente (knockback/impulsos)
+        trans->posicion.x += (vel_x_final + trans->velocidad.x) * dt;
+        
+        // Fricción para que el knockback se detenga gradualmente (más suave)
+        trans->velocidad.x *= std::pow(0.3f, dt); 
+        if (std::abs(trans->velocidad.x) < 10.0f) trans->velocidad.x = 0;
     }
 
     bool SistemaColAABB(CE::Objeto& A, CE::Objeto& B, bool resolucion)
@@ -202,9 +200,9 @@ namespace IVJ
                             CE::GestorAssets::Get().getTextura("hoja_blue"),68,91,1.f))
                 .addComponente(std::make_shared<CE::IShader>("",ASSETS "/shaders/contorno.frag"));
                 malillo->getComponente<CE::IPaths>()->addCurva(
-                        CE::Vector2D{500.f,300.f},CE::Vector2D{600.f,500.f},CE::Vector2D{800.f,300.f});
+                        CE::Vector2D{500.f,300.f},CE::Vector2D{200.f,500.f},CE::Vector2D{800.f,300.f});
                 malillo->getComponente<CE::IPaths>()->addCurva(
-                        CE::Vector2D{800.f,300.f},CE::Vector2D{600.f,100.f},CE::Vector2D{500.f,300.f});
+                        CE::Vector2D{800.f,300.f},CE::Vector2D{200.f,100.f},CE::Vector2D{500.f,300.f});
 
 
                 //mandar datos al shader
@@ -408,14 +406,29 @@ namespace IVJ
             // Impacto: acumular daño y aplicar empuje estilo Smash
             auto& stats = obj->getStats();
             stats->porcentaje_danio += 10.0f;
+            stats->hit_count++;
 
-            float fuerza_empuje = 200.0f * (1.0f + (stats->porcentaje_danio / 50.0f));
+            // Configuración de fuerzas (Ajustables)
+            float fuerza_base_H = 100.0f; 
+            float fuerza_base_V = 150.0f;
+            float mult_combo    = 1.5f;   // Multiplicador para el 3er golpe
+            
+            float multiplicador_smash = (1.0f + (stats->porcentaje_danio / 100.0f));
 
-            obj->getTransformada()->velocidad.x += dir * fuerza_empuje;
+            // Especial: Tercer golpe aplica mucha más fuerza
+            if (stats->hit_count % 3 == 0) {
+                fuerza_base_H *= mult_combo;
+                fuerza_base_V *= mult_combo;
+            }
 
+            // --- IMPULSO DIAGONAL ---
+            obj->getTransformada()->velocidad.x = dir * fuerza_base_H * multiplicador_smash;
+            
             auto grav = obj->getComponente<IGravedad>();
-            grav->velocidad_Y -= fuerza_empuje * 0.8f;
-            grav->en_suelo = false;
+            if (grav) {
+                grav->velocidad_Y = -fuerza_base_V * multiplicador_smash;
+                grav->en_suelo = false;
+            }
 
             gj->golpe_procesado = true;
         }
@@ -623,5 +636,50 @@ namespace IVJ
         CE::Render::Get().AddToDraw(cp2);
     }
 
+    void SistemaLimitesPantalla(const std::vector<std::shared_ptr<CE::Objeto>>& entes)
+    {
+        auto& camara = CE::GestorCamaras::Get().getCamaraActiva();
+        sf::View view = camara.getView();
+        sf::Vector2f center = view.getCenter();
+        sf::Vector2f size = view.getSize();
+
+        float left = center.x - size.x / 2.0f;
+        float right = center.x + size.x / 2.0f;
+        float top = center.y - size.y / 2.0f;
+        float bottom = center.y + size.y / 2.0f;
+
+        for (auto& ente : entes) {
+            if (!ente) continue;
+            CE::Vector2D pos = ente->getTransformada()->posicion;
+            
+            bool offScreen = false;
+            sf::Vector2f indicatorPos = {pos.x, pos.y};
+
+            if (pos.x < left) { offScreen = true; indicatorPos.x = left + 20; }
+            else if (pos.x > right) { offScreen = true; indicatorPos.x = right - 20; }
+            
+            if (pos.y < top) { offScreen = true; indicatorPos.y = top + 20; }
+            else if (pos.y > bottom) { offScreen = true; indicatorPos.y = bottom - 20; }
+
+            if (offScreen) {
+                // Dibujar indicador estilo Smash
+                sf::CircleShape indicator(15.0f);
+                indicator.setOrigin({15.0f, 15.0f});
+                indicator.setPosition(indicatorPos);
+                indicator.setFillColor(sf::Color::Red);
+                indicator.setOutlineThickness(2.0f);
+                indicator.setOutlineColor(sf::Color::White);
+                CE::Render::Get().AddToDraw(indicator);
+
+                // Dibujar una pequeña línea apuntando al jugador usando VertexArray
+                sf::VertexArray line(sf::PrimitiveType::Lines, 2);
+                line[0].position = indicatorPos;
+                line[0].color = sf::Color::White;
+                line[1].position = sf::Vector2f(pos.x, pos.y);
+                line[1].color = sf::Color(255, 255, 255, 50);
+                CE::Render::Get().AddToDraw(line);
+            }
+        }
+    }
 }
 

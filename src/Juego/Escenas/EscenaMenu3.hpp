@@ -54,6 +54,7 @@ namespace IVJ
         std::unique_ptr<sf::Sprite> silhouette;
         sf::RectangleShape selectionStripe;
         std::vector<std::unique_ptr<sf::Text>> bgFloatingTexts;
+        std::unique_ptr<sf::Text> titleText;
         
         sf::RenderTexture occlusionTexture;
         sf::Shader crepuscularShader;

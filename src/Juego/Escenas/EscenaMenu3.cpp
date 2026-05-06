@@ -140,6 +140,19 @@ namespace IVJ
             silhouette->setScale({30.0f, 30.0f}); 
             silhouette->setColor(sf::Color(255, 255, 255,255)); 
         }
+
+        // --- TITULO DEL JUEGO ---
+        {
+            titleText = std::make_unique<sf::Text>(font);
+            titleText->setString("UNLIKELY RIVALS");
+            titleText->setCharacterSize(100);
+            titleText->setStyle(sf::Text::Bold | sf::Text::Italic);
+            titleText->setFillColor(sf::Color::White);
+            titleText->setOutlineColor(P5_RED);
+            titleText->setOutlineThickness(5.0f);
+            titleText->setRotation(sf::degrees(-5.0f));
+            titleText->setPosition({100, 30});
+        }
     }
 
     void EscenaMenu3::setupMenu()
@@ -398,6 +411,8 @@ namespace IVJ
             CE::Render::Get().AddToDraw(item.box);
             if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
         }
+
+        if (titleText) CE::Render::Get().AddToDraw(*titleText);
     }
 
     void EscenaMenu3::onFinal() {}
