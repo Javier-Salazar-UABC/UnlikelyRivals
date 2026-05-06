@@ -101,6 +101,7 @@ namespace IVJ
         MasterChief::cargar(p2, 420.f, 300.f);
         p2->getStats()->porcentaje_danio = 0.f;
 
+        objetos.agregarPool(player);
         objetos.agregarPool(p2);
 
         // Agregar a la cámara smash si es necesario (ya se hace en el dynamic_cast arriba pero por si acaso)
@@ -118,12 +119,7 @@ namespace IVJ
     }
     void Escena_Atlas::onUpdate(float dt)
     {
-        player->inputFSM();
-        player->onUpdate(dt);
-        SistemaMover(player, dt);
-        SistemaGravedad(player, dt);
-
-        // Primera pasada: actualizar todos los objetos y colisiones vs player
+        // Primera pasada: actualizar todos los objetos
         for(auto& obj: objetos.getPool())
         {
             obj->inputFSM();
@@ -133,7 +129,6 @@ namespace IVJ
                 auto& tpos = *obj->getComponente<ITarget>()->pos;
                 SistemaNPCLookTarget(*obj,tpos);
             }
-            SistemaColAABBMid(*player, *obj, true);
         }
 
         // Sistema de partículas fuera de pantalla (Smash Bros style)
@@ -158,13 +153,23 @@ namespace IVJ
             for(auto& tile: objetos.getPool())
             {
                 if(tile == obj) continue;           // no contra sí mismo
-                if(tile->tieneComponente<IGravedad>()) continue; // no contra otros dinámicos
-                SistemaColAABBMid(*obj, *tile, true);
+                
+                // Colisión vs Tiles (objetos estáticos)
+                if(!tile->tieneComponente<IGravedad>()) {
+                    SistemaColAABBMid(*obj, *tile, true);
+                }
+                // Colisión vs Otros Jugadores / Dinámicos (opcional, estilo Smash)
+                else {
+                    // Solo resolvemos si son diferentes para evitar que player choque consigo mismo
+                    // (Aunque ya tenemos el 'tile == obj' arriba)
+                    SistemaColAABBMid(*obj, *tile, true);
+                }
             }
         }
 
-        // Procesar golpes del jugador
+        // Procesar golpes de ambos jugadores
         SistemaGolpe(player, objetos);
+        if (p2) SistemaGolpe(p2, objetos);
     }
     void Escena_Atlas::onInputs(const CE::Botones& accion)
     {
@@ -228,10 +233,11 @@ namespace IVJ
 
         for(auto& obj: objetos.getPool())
             CE::Render::Get().AddToDraw(*obj);
-        CE::Render::Get().AddToDraw(*player);
+
 
 #if DEBUG
         SistemaDibujarGolpe(player);
+        if (p2) SistemaDibujarGolpe(p2);
 #endif
         // --- DIBUJAR PARTÍCULAS DE MUERTE (Al final para que estén arriba) ---
         SistemaDibujarParticulasMuerte();

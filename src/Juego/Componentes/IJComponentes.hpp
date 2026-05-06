@@ -287,4 +287,51 @@ namespace IVJ
         bool en_suelo;
         int saltos_restantes;
     };
+
+    /**
+     * @class IAnimaciones
+     * @brief Mapa de claves de textura por nombre de animación.
+     *
+     * Permite que los FSMs sean genéricos: en lugar de tener el nombre del
+     * personaje hardcodeado, leen la clave de aquí.
+     *
+     * Claves estándar usadas por los FSMs del juego:
+     *   "idle", "walk", "run", "jump", "punch", "kick"
+     *
+     * Ejemplo de uso en un preset:
+     * @code
+     *   auto anim = std::make_shared<IAnimaciones>();
+     *   anim->set("idle",  "esnupi_idle");
+     *   anim->set("walk",  "esnupi_walk");
+     *   entidad->addComponente(anim);
+     * @endcode
+     */
+    class IAnimaciones : public CE::IComponentes
+    {
+    public:
+        IAnimaciones() = default;
+        ~IAnimaciones() override = default;
+
+        /** @brief Asigna la clave de textura para una animación. */
+        void set(const std::string& nombre_anim, const std::string& clave_textura)
+        {
+            m_mapa[nombre_anim] = clave_textura;
+        }
+
+        /**
+         * @brief Obtiene la clave de textura para una animación.
+         * @param nombre_anim Nombre de la animación ("idle", "walk", etc.)
+         * @param fallback    Clave a devolver si no existe la animación.
+         */
+        const std::string& get(const std::string& nombre_anim,
+                               const std::string& fallback = m_vacio) const
+        {
+            auto it = m_mapa.find(nombre_anim);
+            return (it != m_mapa.end()) ? it->second : fallback;
+        }
+
+    private:
+        std::map<std::string, std::string> m_mapa;
+        inline static const std::string m_vacio{};
+    };
 }

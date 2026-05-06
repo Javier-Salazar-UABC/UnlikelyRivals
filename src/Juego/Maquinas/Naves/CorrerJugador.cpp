@@ -4,6 +4,7 @@
 #include "MoverJugadores.hpp"
 #include "GolpearJugador.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
+#include "../../Componentes/IJComponentes.hpp"
 
 namespace IVJ
 {
@@ -40,7 +41,11 @@ namespace IVJ
         sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
         s_w = obj.getComponente<CE::ISprite>()->width;
         s_h = obj.getComponente<CE::ISprite>()->height;
-        sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_run"));
+        const std::string& clave = obj.tieneComponente<IAnimaciones>()
+            ? obj.getComponente<IAnimaciones>()->get("run", "esnupi_run")
+            : "esnupi_run";
+        sprite->setTexture(CE::GestorAssets::Get().getTextura(clave));
+
         id_frame=0;
     }
     void CorrerJugador::onSalir(const Entidad& obj)

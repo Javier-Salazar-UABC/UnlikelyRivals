@@ -56,7 +56,11 @@ namespace IVJ
         sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
         s_w = obj.getComponente<CE::ISprite>()->width;
         s_h = obj.getComponente<CE::ISprite>()->height;
-        sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_punch"));
+        const std::string& clave = obj.tieneComponente<IAnimaciones>()
+            ? obj.getComponente<IAnimaciones>()->get("punch", "esnupi_punch")
+            : "esnupi_punch";
+        sprite->setTexture(CE::GestorAssets::Get().getTextura(clave));
+
         id_frame = 0;
         hitbox_activa = false;
         golpe_procesado = false;

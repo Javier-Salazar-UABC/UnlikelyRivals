@@ -30,7 +30,7 @@ namespace IVJ
 
         // ─── Frame counts ───────────────────────────────────────────────────
         static constexpr int FRAMES_WALK  = 4;
-        static constexpr int FRAMES_IDLE  = 4;
+        static constexpr int FRAMES_IDLE  = 1;
 
         /**
          * @brief Registra todas las texturas del personaje.
@@ -59,15 +59,24 @@ namespace IVJ
                 FRAME_W, FRAME_H,
                 ESCALA);
 
+            // Mapa de animaciones: claves propias de Jeilo (reutiliza walk donde no hay sprite propio)
+            auto anim = std::make_shared<IAnimaciones>();
+            anim->set("idle",  "jeilo_walk");
+            anim->set("walk",  "jeilo_walk");
+            anim->set("run",   "jeilo_walk");  // Sin sprite de correr: usa walk
+            anim->set("jump",  "jeilo_walk");  // Sin sprite de salto: usa walk
+            anim->set("punch", "jeilo_walk");  // Sin sprite de golpe: usa walk
+            anim->set("kick",  "jeilo_walk");  // Sin sprite de patada: usa walk
+
             entidad->addComponente(std::make_shared<CE::IControl>());
             entidad->addComponente(std::make_shared<CE::IBoundingBox>(
                 CE::Vector2D{(FRAME_W - 2) * ESCALA, (FRAME_H - 2) * ESCALA},
                 CE::CollisionLayer::PLAYER));
             entidad->addComponente(std::make_shared<IGravedad>(GRAVEDAD, SALTO));
             entidad->addComponente(sprite);
+            entidad->addComponente(anim);
 
             auto me = std::make_shared<IMaquinaEstado>();
-            // Usamos IdleJugadores con los frames de Jeilo
             me->fsm = std::make_shared<IdleJugadores>(FRAMES_IDLE, 0.15f);
             entidad->addComponente(me);
             entidad->setFSM(me->fsm);

@@ -91,12 +91,22 @@ namespace IVJ
                 FRAME_W, FRAME_H,
                 ESCALA);
 
+            // Mapa de animaciones: los FSMs leerán de aquí en lugar de usar nombres hardcodeados
+            auto anim = std::make_shared<IAnimaciones>();
+            anim->set("idle",  "esnupi_idle");
+            anim->set("walk",  "esnupi_walk");
+            anim->set("run",   "esnupi_run");
+            anim->set("jump",  "esnupi_jump");
+            anim->set("punch", "esnupi_punch");
+            anim->set("kick",  "esnupi_kick");
+
             entidad->addComponente(std::make_shared<CE::IControl>());
             entidad->addComponente(std::make_shared<CE::IBoundingBox>(
                 CE::Vector2D{(FRAME_W - 2) * ESCALA, (FRAME_H - 2) * ESCALA},
                 CE::CollisionLayer::PLAYER));
             entidad->addComponente(std::make_shared<IGravedad>(GRAVEDAD, SALTO));
             entidad->addComponente(sprite);
+            entidad->addComponente(anim);
 
             auto me = std::make_shared<IMaquinaEstado>();
             me->fsm = std::make_shared<IdleJugadores>(FRAMES_IDLE, 0.15f);

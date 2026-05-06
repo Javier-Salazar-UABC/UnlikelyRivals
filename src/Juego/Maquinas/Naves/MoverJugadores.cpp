@@ -4,6 +4,7 @@
 #include "CorrerJugador.hpp"
 #include "GolpearJugador.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
+#include "../../Componentes/IJComponentes.hpp"
 namespace IVJ
 {
     MoverJugadores::MoverJugadores(int max_frames,float frame_rate)
@@ -39,7 +40,11 @@ namespace IVJ
         sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
         s_w = obj.getComponente<CE::ISprite>()->width;
         s_h = obj.getComponente<CE::ISprite>()->height;
-        sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_walk"));
+        const std::string& clave = obj.tieneComponente<IAnimaciones>()
+            ? obj.getComponente<IAnimaciones>()->get("walk", "esnupi_walk")
+            : "esnupi_walk";
+        sprite->setTexture(CE::GestorAssets::Get().getTextura(clave));
+
         id_frame=0;
     }
     void MoverJugadores::onSalir(const Entidad& obj)

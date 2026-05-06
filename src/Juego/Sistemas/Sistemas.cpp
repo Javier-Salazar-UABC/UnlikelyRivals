@@ -409,6 +409,7 @@ namespace IVJ
 
         for (auto& obj : objetos.getPool())
         {
+            if (obj == jugador) continue; // No golpearse a sí mismo
             if (!obj->tieneComponente<IGravedad>()) continue;
             if (!obj->tieneComponente<CE::IBoundingBox>()) continue;
 

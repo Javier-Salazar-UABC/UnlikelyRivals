@@ -47,7 +47,11 @@ namespace IVJ
         sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
         s_w = obj.getComponente<CE::ISprite>()->width;
         s_h = obj.getComponente<CE::ISprite>()->height;
-        sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_jump"));
+        const std::string& clave = obj.tieneComponente<IAnimaciones>()
+            ? obj.getComponente<IAnimaciones>()->get("jump", "esnupi_jump")
+            : "esnupi_jump";
+        sprite->setTexture(CE::GestorAssets::Get().getTextura(clave));
+
 
         if (aplicar_fuerza && obj.tieneComponente<IGravedad>()) {
             auto grav = obj.getComponente<IGravedad>();
