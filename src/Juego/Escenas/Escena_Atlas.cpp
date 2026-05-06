@@ -13,6 +13,7 @@
 #include "Motor/Camaras/CamarasGestor.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
 #include "Juego/Personajes/Snoopy.hpp"
+#include "Juego/Personajes/MasterChief.hpp"
 
 namespace IVJ
 {
@@ -93,26 +94,13 @@ namespace IVJ
 
 
         // --- Cargar jugador 1 (Snoopy) ---
-        // Toda la configuración está encapsulada en el preset.
         Snoopy::cargar(player, 300.f, 300.f);
 
+        // --- Cargar jugador 2 (Master Chief) ---
         p2 = std::make_shared<Entidad>();
-        p2->setPosicion(420.f, 300.f);
-        p2->getTransformada()->velocidad = CE::Vector2D{120.f, 120.f};
+        MasterChief::cargar(p2, 420.f, 300.f);
         p2->getStats()->porcentaje_danio = 0.f;
 
-        auto sprite2 = std::make_shared<CE::ISprite>(
-            CE::GestorAssets::Get().getTextura("esnupi_idle"),
-            20, 20, 2.f);
-        // Colorear en azul para distinguirlo del jugador 1
-        sprite2->m_sprite.setColor(sf::Color{100, 180, 255, 255});
-
-        p2->addComponente(sprite2);
-        p2->addComponente(std::make_shared<CE::IBoundingBox>(
-            CE::Vector2D{18*2.f, 18*2.f},
-            CE::CollisionLayer::ENEMY
-        ));
-        p2->addComponente(std::make_shared<IGravedad>(1200.f, 600.f));
         objetos.agregarPool(p2);
 
         // Agregar a la cámara smash si es necesario (ya se hace en el dynamic_cast arriba pero por si acaso)
@@ -180,62 +168,37 @@ namespace IVJ
     }
     void Escena_Atlas::onInputs(const CE::Botones& accion)
     {
+        // Ruteo de entrada: Gamepad controla a P2, Teclado controla a P1
+        std::shared_ptr<Entidad> target = player;
+        if (accion.getSource() == CE::Botones::InputSource::JoystickButton || 
+            accion.getSource() == CE::Botones::InputSource::JoystickAxis) {
+            target = p2;
+        }
+
+        if (!target) return;
+        auto control = target->getComponente<CE::IControl>();
+        if (!control) return;
+
         switch(accion.getTipo())
         {
             case CE::Botones::TipoAccion::OnPress:
             {
-                if(accion.getNombre() == "arriba")
-                {
-                    player->getComponente<CE::IControl>()->arr=true;
-                }
-                if(accion.getNombre() == "abajo")
-                {
-                    player->getComponente<CE::IControl>()->abj=true;
-                }
-                if(accion.getNombre() == "derecha")
-                {
-                    player->getComponente<CE::IControl>()->der=true;
-                }
-                if(accion.getNombre() == "izquierda")
-                {
-                    player->getComponente<CE::IControl>()->izq=true;
-                }
-                if(accion.getNombre() == "correr")
-                {
-                    player->getComponente<CE::IControl>()->run=true;
-                }
-                if(accion.getNombre() == "atacar")
-                {
-                    player->getComponente<CE::IControl>()->acc=true;
-                }
+                if(accion.getNombre() == "arriba")    control->arr = true;
+                if(accion.getNombre() == "abajo")     control->abj = true;
+                if(accion.getNombre() == "derecha")   control->der = true;
+                if(accion.getNombre() == "izquierda") control->izq = true;
+                if(accion.getNombre() == "correr")    control->run = true;
+                if(accion.getNombre() == "atacar")    control->acc = true;
                 break;
             }
             case CE::Botones::TipoAccion::OnRelease:
             {
-                if(accion.getNombre() == "arriba")
-                {
-                    player->getComponente<CE::IControl>()->arr=false;
-                }
-                if(accion.getNombre() == "abajo")
-                {
-                    player->getComponente<CE::IControl>()->abj=false;
-                }
-                if(accion.getNombre() == "derecha")
-                {
-                    player->getComponente<CE::IControl>()->der=false;
-                }
-                if(accion.getNombre() == "izquierda")
-                {
-                    player->getComponente<CE::IControl>()->izq=false;
-                }
-                if(accion.getNombre() == "correr")
-                {
-                    player->getComponente<CE::IControl>()->run=false;
-                }
-                if(accion.getNombre() == "atacar")
-                {
-                    player->getComponente<CE::IControl>()->acc=false;
-                }
+                if(accion.getNombre() == "arriba")    control->arr = false;
+                if(accion.getNombre() == "abajo")     control->abj = false;
+                if(accion.getNombre() == "derecha")   control->der = false;
+                if(accion.getNombre() == "izquierda") control->izq = false;
+                if(accion.getNombre() == "correr")    control->run = false;
+                if(accion.getNombre() == "atacar")    control->acc = false;
                 break;
             }
             case CE::Botones::TipoAccion::Moved:
@@ -243,20 +206,17 @@ namespace IVJ
                 float pos = accion.getAxisPos();
                 if (accion.getNombre() == "horizontal")
                 {
-                    player->getComponente<CE::IControl>()->der = (pos > 30.f);
-                    player->getComponente<CE::IControl>()->izq = (pos < -30.f);
+                    control->der = (pos > 30.f);
+                    control->izq = (pos < -30.f);
                 }
                 if (accion.getNombre() == "vertical")
                 {
-                    player->getComponente<CE::IControl>()->abj = (pos > 30.f);
-                    player->getComponente<CE::IControl>()->arr = (pos < -30.f);
+                    control->abj = (pos > 30.f);
+                    control->arr = (pos < -30.f);
                 }
                 break;
             }
-            case CE::Botones::TipoAccion::None:
-            {
-                break;
-            }
+            case CE::Botones::TipoAccion::None: break;
         }
     }
     void Escena_Atlas::onRender()
