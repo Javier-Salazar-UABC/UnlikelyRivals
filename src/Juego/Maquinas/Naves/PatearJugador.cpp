@@ -11,15 +11,21 @@ namespace IVJ
     PatearJugador::PatearJugador(int max_frames, float frame_rate)
         :FSM{},sprite{nullptr},s_w{0},s_h{0},
         max_tiempo{frame_rate},
-        act_tiempo{frame_rate},
+        act_tiempo{0.f},      // Empezar en 0 para que el primer frame sea instantáneo
         max_frames{max_frames},
         hitbox_activa{false},
-        golpe_procesado{false}
+        golpe_procesado{false},
+        esperando_liberacion{false}
     {
         nombre = "PatearJugador";
     }
     FSM* PatearJugador::onInputs(const Entidad& obj, const CE::IControl& control)
     {
+        // Evitar que siga atacando si el botón queda presionado
+        if (!control.acc) {
+            esperando_liberacion = false;
+        }
+
         if (id_frame >= max_frames) {
             if (control.arr) {
                 if (obj.tieneComponente<IGravedad>() && obj.getComponente<IGravedad>()->saltos_restantes > 0) {
@@ -46,6 +52,7 @@ namespace IVJ
         id_frame = 0;
         hitbox_activa = false;
         golpe_procesado = false;
+        esperando_liberacion = true; // Ignorar el acc actual hasta que se suelte
     }
     void PatearJugador::onSalir(const Entidad& obj)
     {

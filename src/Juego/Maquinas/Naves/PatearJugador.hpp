@@ -20,6 +20,7 @@ namespace IVJ
         float act_tiempo;
         int max_frames;
         int id_frame;
+        bool esperando_liberacion; // Evita re-atacar si el botón queda presionado
     public:
         bool hitbox_activa;
         bool golpe_procesado;

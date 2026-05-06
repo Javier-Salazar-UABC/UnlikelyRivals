@@ -12,6 +12,7 @@
 #include "Juego/Sistemas/Sistemas.hpp"
 #include "Motor/Camaras/CamarasGestor.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
+#include "Juego/Personajes/Snoopy.hpp"
 
 namespace IVJ
 {
@@ -91,67 +92,10 @@ namespace IVJ
         terreno->getStats()->def=150;
 
 
-        CE::GestorAssets::Get().agregarTextura(
-            "esnupi_walk",                                //llave
-            ASSETS "/sprites/esnupi_walk.png",   //path del sprite
-            CE::Vector2D{0.f,0.f},                  //pos dentro de la hoja
-            CE::Vector2D{80.f,20.f});               // dimensiones
+        // --- Cargar jugador 1 (Snoopy) ---
+        // Toda la configuración está encapsulada en el preset.
+        Snoopy::cargar(player, 300.f, 300.f);
 
-        CE::GestorAssets::Get().agregarTextura(
-            "esnupi_run",                                
-            ASSETS "/sprites/esnupi_run.png",   
-            CE::Vector2D{0.f,0.f},                  
-            CE::Vector2D{120.f,20.f});               // dimensiones
-
-        CE::GestorAssets::Get().agregarTextura(
-            "esnupi_jump",                                
-            ASSETS "/sprites/esnupi_jump.png",   
-            CE::Vector2D{0.f,0.f},                  
-            CE::Vector2D{100.f,20.f});               // dimensiones
-
-        CE::GestorAssets::Get().agregarTextura(
-            "esnupi_idle",                                
-            ASSETS "/sprites/esnupi_idle.png",   
-            CE::Vector2D{0.f,0.f},                  
-            CE::Vector2D{80.f,20.f});               // dimensiones
-
-        CE::GestorAssets::Get().agregarTextura(
-            "esnupi_punch",                                
-            ASSETS "/sprites/esnupi_punch.png",   
-            CE::Vector2D{0.f,0.f},                  
-            CE::Vector2D{80.f,20.f});               // dimensiones
-
-        CE::GestorAssets::Get().agregarTextura(
-            "esnupi_kick",                                
-            ASSETS "/sprites/esnupi_kick.png",   
-            CE::Vector2D{0.f,0.f},                  
-            CE::Vector2D{80.f,20.f});               // dimensiones (asumiendo 6 frames de 20x20)
-
-        auto trans = player->getTransformada();
-        trans->velocidad = CE::Vector2D{120.f,120.f};
-        player->setPosicion(300.f,300.f);
-
-        auto sprite = std::make_shared<CE::ISprite>(
-            CE::GestorAssets::Get().getTextura("esnupi_walk"), //textura
-            20,20,                                      // dim
-            2.f);                                       // escala
-
-
-        player->addComponente(std::make_shared<CE::IControl>());
-        player->addComponente(std::make_shared<CE::IBoundingBox>(
-            CE::Vector2D{18*2.f,18*2.f}, //dimensiones del sprite
-            CE::CollisionLayer::PLAYER
-        ));
-        player->addComponente(std::make_shared<IGravedad>(1200.f, 600.f));
-        player->addComponente(sprite);
-
-        auto me = std::make_shared<IMaquinaEstado>();
-        me->fsm = std::make_shared<IdleJugadores>(4, 0.15f);
-        player->addComponente(me);
-        //ejecuta onEntrar para inicializar variables
-        player->setFSM(me->fsm);
-
-        // --- Jugador 2 (maniquí de prueba para testear golpes) ---
         p2 = std::make_shared<Entidad>();
         p2->setPosicion(420.f, 300.f);
         p2->getTransformada()->velocidad = CE::Vector2D{120.f, 120.f};

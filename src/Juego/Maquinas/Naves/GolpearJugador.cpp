@@ -12,7 +12,7 @@ namespace IVJ
     GolpearJugador::GolpearJugador(int max_frames, float frame_rate)
         :FSM{},sprite{nullptr},s_w{0},s_h{0},
         max_tiempo{frame_rate},
-        act_tiempo{frame_rate},
+        act_tiempo{0.f},      // Empezar en 0 para que el primer frame sea instantáneo
         max_frames{max_frames},
         hitbox_activa{false},
         golpe_procesado{false}
