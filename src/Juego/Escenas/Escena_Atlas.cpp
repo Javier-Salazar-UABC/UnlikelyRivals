@@ -121,6 +121,12 @@ namespace IVJ
             CE::Vector2D{0.f,0.f},                  
             CE::Vector2D{80.f,20.f});               // dimensiones
 
+        CE::GestorAssets::Get().agregarTextura(
+            "esnupi_kick",                                
+            ASSETS "/sprites/esnupi_kick.png",   
+            CE::Vector2D{0.f,0.f},                  
+            CE::Vector2D{80.f,20.f});               // dimensiones (asumiendo 6 frames de 20x20)
+
         auto trans = player->getTransformada();
         trans->velocidad = CE::Vector2D{120.f,120.f};
         player->setPosicion(300.f,300.f);

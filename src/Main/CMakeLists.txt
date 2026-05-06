@@ -25,6 +25,10 @@ add_executable(CimaEngine3v main.cpp
         ../Juego/Maquinas/Naves/SaltarJugador.hpp
         ../Juego/Maquinas/Naves/CorrerJugador.cpp
         ../Juego/Maquinas/Naves/CorrerJugador.hpp
+        ../Juego/Maquinas/Naves/GolpearJugador.cpp
+        ../Juego/Maquinas/Naves/GolpearJugador.hpp
+        ../Juego/Maquinas/Naves/PatearJugador.cpp
+        ../Juego/Maquinas/Naves/PatearJugador.hpp
         ../Juego/Maquinas/Bosses/FSMBoss.hpp
         ../Juego/Maquinas/Bosses/IdleBoss.cpp
         ../Juego/Maquinas/Bosses/IdleBoss.hpp

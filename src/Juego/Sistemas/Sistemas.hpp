@@ -5,7 +5,6 @@
 #include "../../Motor/Primitivos/CEPool.hpp"
 #include "../objetos/Entidad.hpp"
 #include "../Maquinas/Naves/GolpearJugador.hpp"
-#
 
 namespace IVJ
 {

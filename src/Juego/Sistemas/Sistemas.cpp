@@ -9,6 +9,7 @@
 #include "../../Motor/Primitivos/GestorColisiones.hpp"
 #include "Motor/Camaras/CamarasGestor.hpp"
 #include "Juego/Maquinas/Naves/GolpearJugador.hpp"
+#include "Juego/Maquinas/Naves/PatearJugador.hpp"
 #include <memory>
 
 
@@ -51,6 +52,7 @@ namespace IVJ
     {
         auto trans = objeto->getTransformada();
         auto control = objeto->getComponente<CE::IControl>();
+        auto grav = objeto->getComponente<IGravedad>();
 
         float move_speed = 150.0f; // Velocidad base de caminata
         float vel_x_final = 0.0f;
@@ -71,8 +73,14 @@ namespace IVJ
         // Aplicar velocidad persistente (knockback/impulsos)
         trans->posicion.x += (vel_x_final + trans->velocidad.x) * dt;
         
-        // Fricción para que el knockback se detenga gradualmente (más suave)
-        trans->velocidad.x *= std::pow(0.3f, dt); 
+        // --- GESTIÓN DE FRICCIÓN (Resbalamiento) ---
+        // Si está en el suelo, la fricción es altísima para que no se resbale
+        float friction_factor = 0.3f; // Aire
+        if (grav && grav->en_suelo) {
+            friction_factor = 0.0001f; // Suelo (casi instantáneo)
+        }
+
+        trans->velocidad.x *= std::pow(friction_factor, dt); 
         if (std::abs(trans->velocidad.x) < 10.0f) trans->velocidad.x = 0;
     }
 
@@ -364,116 +372,126 @@ namespace IVJ
     void SistemaGolpe(const std::shared_ptr<Entidad>& jugador, CE::Pool& objetos)
     {
         auto maquina_estado = jugador->getComponente<IMaquinaEstado>();
-        if (!maquina_estado || !maquina_estado->fsm || maquina_estado->fsm->getNombre() != "GolpearJugador")
-            return;
+        if (!maquina_estado || !maquina_estado->fsm) return;
 
-        auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
-        if (!gj || !gj->hitbox_activa)
-            return;
+        bool isPunch = (maquina_estado->fsm->getNombre() == "GolpearJugador");
+        bool isKick  = (maquina_estado->fsm->getNombre() == "PatearJugador");
 
-        // Calcular posición y dirección de la hitbox del golpe
+        if (!isPunch && !isKick) return;
+
+        bool hitbox_activa = false;
+        bool golpe_procesado = false;
+        
+        if (isPunch) {
+            auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
+            hitbox_activa = gj->hitbox_activa;
+            golpe_procesado = gj->golpe_procesado;
+        } else {
+            auto pj = dynamic_cast<PatearJugador*>(maquina_estado->fsm.get());
+            hitbox_activa = pj->hitbox_activa;
+            golpe_procesado = pj->golpe_procesado;
+        }
+
+        if (!hitbox_activa || golpe_procesado) return;
+
         auto trans  = jugador->getTransformada();
         auto sprite = jugador->getComponente<CE::ISprite>();
         float dir   = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
 
-        // Dimensiones de la hitbox de ataque (rectángulo AABB) - Reducidas
-        const float hitW = 20.f; // mitad del ancho
-        const float hitH = 15.f; // mitad del alto
+        const float hitW = isKick ? 30.f : 20.f; 
+        const float hitH = isKick ? 20.f : 15.f; 
 
-        // Centro de la hitbox: delante del jugador
         CE::Vector2D centro_hitbox = trans->posicion;
         centro_hitbox.x += dir * (hitW + 5.f);
 
-        if (gj->golpe_procesado)
-            return;
-
         for (auto& obj : objetos.getPool())
         {
-            // Solo golpear objetos dinámicos con IBoundingBox
             if (!obj->tieneComponente<IGravedad>()) continue;
             if (!obj->tieneComponente<CE::IBoundingBox>()) continue;
 
-            // AABB overlap: hitbox del golpe vs IBoundingBox del objeto
             auto midObj = obj->getComponente<CE::IBoundingBox>()->mitad;
             auto posObj = obj->getTransformada()->posicion;
 
             float dX = std::abs(posObj.x - centro_hitbox.x);
             float dY = std::abs(posObj.y - centro_hitbox.y);
 
-            bool colision = (dX < hitW + midObj.x) && (dY < hitH + midObj.y);
-            if (!colision) continue;
+            if ((dX < hitW + midObj.x) && (dY < hitH + midObj.y))
+            {
+                auto& stats = obj->getStats();
+                stats->porcentaje_danio += isKick ? 15.0f : 10.0f;
+                stats->hit_count++;
 
-            // Impacto: acumular daño y aplicar empuje estilo Smash
-            auto& stats = obj->getStats();
-            stats->porcentaje_danio += 10.0f;
-            stats->hit_count++;
+                float fuerza_base_H = isKick ? 200.0f : 100.0f; 
+                float fuerza_base_V = isKick ? 200.0f : 150.0f;
+                
+                float multiplicador_smash = (1.0f + (stats->porcentaje_danio / 100.0f));
 
-            // Configuración de fuerzas (Ajustables)
-            float fuerza_base_H = 100.0f; 
-            float fuerza_base_V = 150.0f;
-            float mult_combo    = 1.5f;   // Multiplicador para el 3er golpe
-            
-            float multiplicador_smash = (1.0f + (stats->porcentaje_danio / 100.0f));
+                obj->getTransformada()->velocidad.x = dir * fuerza_base_H * multiplicador_smash;
+                auto grav = obj->getComponente<IGravedad>();
+                if (grav) {
+                    grav->velocidad_Y = -fuerza_base_V * multiplicador_smash;
+                    grav->en_suelo = false;
+                }
 
-            // Especial: Tercer golpe aplica mucha más fuerza
-            if (stats->hit_count % 3 == 0) {
-                fuerza_base_H *= mult_combo;
-                fuerza_base_V *= mult_combo;
+                if (isPunch) dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get())->golpe_procesado = true;
+                else dynamic_cast<PatearJugador*>(maquina_estado->fsm.get())->golpe_procesado = true;
             }
-
-            // --- IMPULSO DIAGONAL ---
-            obj->getTransformada()->velocidad.x = dir * fuerza_base_H * multiplicador_smash;
-            
-            auto grav = obj->getComponente<IGravedad>();
-            if (grav) {
-                grav->velocidad_Y = -fuerza_base_V * multiplicador_smash;
-                grav->en_suelo = false;
-            }
-
-            gj->golpe_procesado = true;
         }
-        gj->golpe_procesado = true;
     }
 
     void SistemaDibujarGolpe(const std::shared_ptr<Entidad>& jugador)
     {
 #if DEBUG
         auto maquina_estado = jugador->getComponente<IMaquinaEstado>();
-        if (!maquina_estado || !maquina_estado->fsm || maquina_estado->fsm->getNombre() != "GolpearJugador")
-            return;
+        if (!maquina_estado || !maquina_estado->fsm) return;
 
-        auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
-        if (!gj || !gj->hitbox_activa)
-            return;
+        bool isPunch = (maquina_estado->fsm->getNombre() == "GolpearJugador");
+        bool isKick  = (maquina_estado->fsm->getNombre() == "PatearJugador");
+        if (!isPunch && !isKick) return;
 
-        auto trans  = jugador->getTransformada();
+        bool activa = false;
+        bool procesado = false;
+        if (isPunch) {
+            auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
+            activa = gj->hitbox_activa;
+            procesado = gj->golpe_procesado;
+        } else {
+            auto pj = dynamic_cast<PatearJugador*>(maquina_estado->fsm.get());
+            activa = pj->hitbox_activa;
+            procesado = pj->golpe_procesado;
+        }
+
+        if (!activa) return;
+
+        auto trans = jugador->getTransformada();
         auto sprite = jugador->getComponente<CE::ISprite>();
-        float dir   = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
+        float dir = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
 
-        const float hitW = 20.f; 
-        const float hitH = 15.f; 
+        const float hitW = isKick ? 30.f : 20.f; 
+        const float hitH = isKick ? 20.f : 15.f; 
 
-        CE::Vector2D centro_hitbox = trans->posicion;
-        centro_hitbox.x += dir * (hitW + 5.f);
+        CE::Vector2D centro = trans->posicion;
+        centro.x += dir * (hitW + 5.f);
 
-        sf::RectangleShape debug_hitbox{{hitW * 2.f, hitH * 2.f}};
-        debug_hitbox.setOrigin({hitW, hitH});
-        debug_hitbox.setPosition({centro_hitbox.x, centro_hitbox.y});
+        sf::RectangleShape debug_hitbox(sf::Vector2f(hitW * 2.f, hitH * 2.f));
+        debug_hitbox.setOrigin(sf::Vector2f(hitW, hitH));
+        debug_hitbox.setPosition(sf::Vector2f(centro.x, centro.y));
         
-        if (gj->golpe_procesado)
+        if (procesado)
         {
-            debug_hitbox.setFillColor(sf::Color{255, 140, 0, 60});
-            debug_hitbox.setOutlineColor(sf::Color{255, 140, 0, 200});
+            debug_hitbox.setFillColor(sf::Color(255, 140, 0, 60));
+            debug_hitbox.setOutlineColor(sf::Color(255, 140, 0, 200));
         }
         else
         {
-            debug_hitbox.setFillColor(sf::Color{255, 50, 50, 80});
-            debug_hitbox.setOutlineColor(sf::Color{255, 50, 50, 220});
+            debug_hitbox.setFillColor(sf::Color(255, 50, 50, 80));
+            debug_hitbox.setOutlineColor(sf::Color(255, 50, 50, 220));
         }
         debug_hitbox.setOutlineThickness(2.f);
         CE::Render::Get().AddToDraw(debug_hitbox);
 #endif
     }
+
 
     void SistemaEpidemia(const MatrizEntes& matriz, float dt)
     {

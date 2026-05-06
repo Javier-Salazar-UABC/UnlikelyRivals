@@ -3,11 +3,11 @@
 
 namespace IVJ
 {
-    class GolpearJugador : public FSM
+    class PatearJugador : public FSM
     {
     public:
-        GolpearJugador(int max_frames, float frame_rate);
-        ~GolpearJugador() override{};
+        PatearJugador(int max_frames, float frame_rate);
+        ~PatearJugador() override{};
         FSM* onInputs(const Entidad& obj, const CE::IControl& control)override;
         void onEntrar(const Entidad& obj)override;
         void onSalir(const Entidad& obj)override;
@@ -20,9 +20,8 @@ namespace IVJ
         float act_tiempo;
         int max_frames;
         int id_frame;
-        bool esperando_liberacion;
     public:
         bool hitbox_activa;
-        bool golpe_procesado; // Para asegurar que no golpea multiples veces por frame
+        bool golpe_procesado;
     };
 }
