@@ -1,7 +1,5 @@
 #include "Escena_Atlas.hpp"
 
-#include <cmath>
-
 #include "Motor/Utils/Vector2D.hpp"
 #include <Motor/Inputs/Botones.hpp>
 #include <Motor/Render/Render.hpp>
@@ -11,11 +9,9 @@
 #include <memory>
 
 #include "Juego/Maquinas/Naves/IdleJugadores.hpp"
-#include "Juego/Maquinas/Naves/GolpearJugador.hpp"
 #include "Juego/Sistemas/Sistemas.hpp"
 #include "Motor/Camaras/CamarasGestor.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
-
 
 namespace IVJ
 {
@@ -116,6 +112,27 @@ namespace IVJ
         player->addComponente(me);
         //ejecuta onEntrar para inicializar variables
         player->setFSM(me->fsm);
+
+        // --- Jugador 2 (maniquí de prueba para testear golpes) ---
+        auto player2 = std::make_shared<Entidad>();
+        player2->setPosicion(420.f, 300.f);
+        player2->getTransformada()->velocidad = CE::Vector2D{120.f, 120.f};
+        player2->getStats()->porcentaje_danio = 0.f;
+
+        auto sprite2 = std::make_shared<CE::ISprite>(
+            CE::GestorAssets::Get().getTextura("esnupi_idle"),
+            20, 20, 2.f);
+        // Colorear en azul para distinguirlo del jugador 1
+        sprite2->m_sprite.setColor(sf::Color{100, 180, 255, 255});
+
+        player2->addComponente(sprite2);
+        player2->addComponente(std::make_shared<CE::IBoundingBox>(
+            CE::Vector2D{18*2.f, 18*2.f}
+        ));
+        player2->addComponente(std::make_shared<IGravedad>(1200.f, 600.f));
+        objetos.agregarPool(player2);
+        // --------------------------------------------------------
+
         inicializar=false;
     }
     void Escena_Atlas::onFinal()
@@ -124,10 +141,12 @@ namespace IVJ
     }
     void Escena_Atlas::onUpdate(float dt)
     {
-        player->inputFSM(); //ejecutar los inputs de la maquina
+        player->inputFSM();
         player->onUpdate(dt);
         SistemaMover(player, dt);
         SistemaGravedad(player, dt);
+
+        // Primera pasada: actualizar todos los objetos y colisiones vs player
         for(auto& obj: objetos.getPool())
         {
             obj->inputFSM();
@@ -140,56 +159,25 @@ namespace IVJ
             SistemaColAABBMid(*player, *obj, true);
         }
 
-        // Lógica de golpe
-        auto maquina_estado = player->getComponente<IMaquinaEstado>();
-        if (maquina_estado && maquina_estado->fsm && maquina_estado->fsm->getNombre() == "GolpearJugador") {
-            auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
-            if (gj && gj->hitbox_activa && !gj->golpe_procesado) {
-                // Crear hitbox temporal frente al jugador
-                auto trans = player->getTransformada();
-                auto sprite = player->getComponente<CE::ISprite>();
-                float dir = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
-                
-                // Asumimos un alcance de 40 pixeles hacia adelante
-                CE::Vector2D pos_hitbox = trans->posicion;
-                pos_hitbox.x += dir * 40.0f;
-                
-                // Radio de hitbox para la colisión simple
-                float radio_hitbox = 30.0f;
+        // Segunda pasada: física de objetos dinámicos (los que tienen IGravedad)
+        // y su colisión vs todos los tiles/objetos estáticos del pool
+        for(auto& obj: objetos.getPool())
+        {
+            if(!obj->tieneComponente<IGravedad>()) continue;
 
-                for(auto& obj: objetos.getPool()) {
-                    if (obj->tieneComponente<CE::ITransform>()) {
-                        auto o_trans = obj->getTransformada();
-                        // Distancia simple (cuadrada o normal)
-                        float dx = o_trans->posicion.x - pos_hitbox.x;
-                        float dy = o_trans->posicion.y - pos_hitbox.y;
-                        float dist = std::sqrt(dx*dx + dy*dy);
-                        
-                        if (dist < radio_hitbox + 20.0f) { // asumiendo radio del objeto es 20
-                            // Colisión! Aplicar empuje
-                            if (obj->tieneComponente<CE::IStats>()) {
-                                obj->getStats()->porcentaje_danio += 10.0f; // Aumentar porcentaje
-                                
-                                // Empuje base * porcentaje
-                                float fuerza_empuje = 200.0f * (1.0f + (obj->getStats()->porcentaje_danio / 50.0f));
-                                
-                                // Aplicar fuerza hacia arriba y en la dirección del golpe
-                                o_trans->velocidad.x += dir * fuerza_empuje;
-                                
-                                if (obj->tieneComponente<IGravedad>()) {
-                                    obj->getComponente<IGravedad>()->velocidad_Y -= fuerza_empuje * 0.8f;
-                                    obj->getComponente<IGravedad>()->en_suelo = false;
-                                } else {
-                                    o_trans->velocidad.y -= fuerza_empuje * 0.8f;
-                                }
-                            }
-                            gj->golpe_procesado = true; // Solo golpear al primero o a todos en este frame
-                        }
-                    }
-                }
-                gj->golpe_procesado = true; // Ya verificamos en este frame
+            SistemaGravedad(obj, dt);
+
+            // Resolver colisión de este objeto dinámico contra todos los demás del pool
+            for(auto& tile: objetos.getPool())
+            {
+                if(tile == obj) continue;           // no contra sí mismo
+                if(tile->tieneComponente<IGravedad>()) continue; // no contra otros dinámicos
+                SistemaColAABBMid(*obj, *tile, true);
             }
         }
+
+        // Procesar golpes del jugador
+        SistemaGolpe(player, objetos);
     }
     void Escena_Atlas::onInputs(const CE::Botones& accion)
     {
@@ -267,6 +255,10 @@ namespace IVJ
         for(auto& obj: objetos.getPool())
             CE::Render::Get().AddToDraw(*obj);
         CE::Render::Get().AddToDraw(*player);
+
+#if DEBUG
+        SistemaDibujarGolpe(player);
+#endif
 /*
 #if DEBUG
         auto cam = &CE::GestorCamaras::Get().getCamaraActiva();

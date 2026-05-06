@@ -45,7 +45,7 @@ namespace IVJ
         CE::GestorEscenas::Get().registrarEscena("Simulacion",std::make_shared<Escena_Sim>());
         CE::GestorEscenas::Get().registrarEscena("ECamara",std::make_shared<Escena_Camara>(jugador));
         CE::GestorEscenas::Get().registrarEscena("ESpriteTiles",std::make_shared<Escena_SpriteTiles>(jugadornave));
-        CE::GestorEscenas::Get().registrarEscena("EAtlas",std::make_shared<Escena_Atlas>(jugadornave));
+        CE::GestorEscenas::Get().registrarEscena("EAtlas",std::make_shared<Escena_Atlas>(jugador));
         CE::GestorEscenas::Get().registrarEscena("Menu2",std::make_shared<EscenaMenu2>());
 
         //crear el jugador

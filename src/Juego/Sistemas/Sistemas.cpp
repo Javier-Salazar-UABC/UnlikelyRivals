@@ -348,6 +348,104 @@ namespace IVJ
         }
     }
 
+    void SistemaGolpe(const std::shared_ptr<Entidad>& jugador, CE::Pool& objetos)
+    {
+        auto maquina_estado = jugador->getComponente<IMaquinaEstado>();
+        if (!maquina_estado || !maquina_estado->fsm || maquina_estado->fsm->getNombre() != "GolpearJugador")
+            return;
+
+        auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
+        if (!gj || !gj->hitbox_activa)
+            return;
+
+        // Calcular posición y dirección de la hitbox del golpe
+        auto trans  = jugador->getTransformada();
+        auto sprite = jugador->getComponente<CE::ISprite>();
+        float dir   = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
+
+        // Dimensiones de la hitbox de ataque (rectángulo AABB) - Reducidas
+        const float hitW = 20.f; // mitad del ancho
+        const float hitH = 15.f; // mitad del alto
+
+        // Centro de la hitbox: delante del jugador
+        CE::Vector2D centro_hitbox = trans->posicion;
+        centro_hitbox.x += dir * (hitW + 5.f);
+
+        if (gj->golpe_procesado)
+            return;
+
+        for (auto& obj : objetos.getPool())
+        {
+            // Solo golpear objetos dinámicos con IBoundingBox
+            if (!obj->tieneComponente<IGravedad>()) continue;
+            if (!obj->tieneComponente<CE::IBoundingBox>()) continue;
+
+            // AABB overlap: hitbox del golpe vs IBoundingBox del objeto
+            auto midObj = obj->getComponente<CE::IBoundingBox>()->mitad;
+            auto posObj = obj->getTransformada()->posicion;
+
+            float dX = std::abs(posObj.x - centro_hitbox.x);
+            float dY = std::abs(posObj.y - centro_hitbox.y);
+
+            bool colision = (dX < hitW + midObj.x) && (dY < hitH + midObj.y);
+            if (!colision) continue;
+
+            // Impacto: acumular daño y aplicar empuje estilo Smash
+            auto& stats = obj->getStats();
+            stats->porcentaje_danio += 10.0f;
+
+            float fuerza_empuje = 200.0f * (1.0f + (stats->porcentaje_danio / 50.0f));
+
+            obj->getTransformada()->velocidad.x += dir * fuerza_empuje;
+
+            auto grav = obj->getComponente<IGravedad>();
+            grav->velocidad_Y -= fuerza_empuje * 0.8f;
+            grav->en_suelo = false;
+
+            gj->golpe_procesado = true;
+        }
+        gj->golpe_procesado = true;
+    }
+
+    void SistemaDibujarGolpe(const std::shared_ptr<Entidad>& jugador)
+    {
+#if DEBUG
+        auto maquina_estado = jugador->getComponente<IMaquinaEstado>();
+        if (!maquina_estado || !maquina_estado->fsm || maquina_estado->fsm->getNombre() != "GolpearJugador")
+            return;
+
+        auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
+        if (!gj || !gj->hitbox_activa)
+            return;
+
+        auto trans  = jugador->getTransformada();
+        auto sprite = jugador->getComponente<CE::ISprite>();
+        float dir   = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
+
+        const float hitW = 20.f; 
+        const float hitH = 15.f; 
+
+        CE::Vector2D centro_hitbox = trans->posicion;
+        centro_hitbox.x += dir * (hitW + 5.f);
+
+        sf::RectangleShape debug_hitbox{{hitW * 2.f, hitH * 2.f}};
+        debug_hitbox.setOrigin({hitW, hitH});
+        debug_hitbox.setPosition({centro_hitbox.x, centro_hitbox.y});
+        
+        if (gj->golpe_procesado)
+        {
+            debug_hitbox.setFillColor(sf::Color{255, 140, 0, 60});
+            debug_hitbox.setOutlineColor(sf::Color{255, 140, 0, 200});
+        }
+        else
+        {
+            debug_hitbox.setFillColor(sf::Color{255, 50, 50, 80});
+            debug_hitbox.setOutlineColor(sf::Color{255, 50, 50, 220});
+        }
+        debug_hitbox.setOutlineThickness(2.f);
+        CE::Render::Get().AddToDraw(debug_hitbox);
+#endif
+    }
 
     void SistemaEpidemia(const MatrizEntes& matriz, float dt)
     {

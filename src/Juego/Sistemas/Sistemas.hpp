@@ -3,6 +3,8 @@
 #include "../../Motor/Componentes/IComponentes.hpp"
 #include "../Componentes/IJComponentes.hpp"
 #include "../../Motor/Primitivos/CEPool.hpp"
+#include "../objetos/Entidad.hpp"
+#include "../Maquinas/Naves/GolpearJugador.hpp"
 #
 
 namespace IVJ
@@ -45,5 +47,7 @@ namespace IVJ
     //DEBUG
     [[maybe_unused]]void pintarLinea(CE::Vector2D& p1, CE::Vector2D& p2, const sf::Color& color=sf::Color::Red);
 
+    [[maybe_unused]] void SistemaGolpe(const std::shared_ptr<Entidad>& jugador, CE::Pool& objetos);
+    [[maybe_unused]] void SistemaDibujarGolpe(const std::shared_ptr<Entidad>& jugador);
 
 }
