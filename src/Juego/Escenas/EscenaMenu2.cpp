@@ -31,6 +31,8 @@ namespace IVJ
 
         registrarBotones(sf::Keyboard::Scancode::W, "up");
         registrarBotones(sf::Keyboard::Scancode::S, "down");
+        registrarBotones(sf::Keyboard::Scancode::Up, "up");
+        registrarBotones(sf::Keyboard::Scancode::Down, "down");
         registrarBotones(sf::Keyboard::Scancode::Enter, "select");
         registrarBotones(sf::Keyboard::Scancode::Escape, "exit");
 

@@ -45,7 +45,9 @@ namespace IVJ
         tiles_layers.push_back(TileMap()); // las islas
         tiles_layers.push_back(TileMap()); // los objetos
 
-        if(!tiles_layers[0].loadTileMap(ASSETS "/mapas/playa_col_layer1.txt",objetos))
+        tiles_layers[0].setPosition({-500, -500});
+
+        if(!tiles_layers[0].loadTileMap(ASSETS "/mapas/playa_col_layer1.txt",objetos, {-500.f, -500.f}))
             exit(EXIT_FAILURE);
         if(!tiles_layers[1].loadTileMap(ASSETS "/mapas/playa_layer2.txt"))
             exit(EXIT_FAILURE);
@@ -81,6 +83,18 @@ namespace IVJ
 
         techo->setPosicion(1300,175);
 
+        auto t_shader = std::make_shared<CE::IShader>("", ASSETS "/shaders/agua.frag");
+        static sf::Texture p_tex = techo_sprite->m_sprite.getTexture();
+        static float wescala = 0.01;
+        static float vescala = 2.0;
+        static float frec = 20.0;
+
+        t_shader->setTextura("textura", &p_tex);
+        t_shader->setEscalar("escala_distorcion", &wescala);
+        t_shader->setEscalar("vel_distorcion", &vescala);
+        t_shader->setEscalar("frecuencia", &frec);
+
+        techo->addComponente(t_shader);
         objetos.agregarPool(techo);
         //Lab 8 animaciones
         CE::GestorAssets::Get().agregarTextura(
@@ -115,13 +129,18 @@ namespace IVJ
 
         //lab 8 animaciones
         auto me = std::make_shared<IMaquinaEstado>();
-        me->fsm = std::make_shared<IdleJugadores>();
+        me->fsm = std::make_shared<IdleJugadores>(4, 0.15f);
         player->addComponente(me);
         //ejecuta onEntrar para inicializar variables
         player->setFSM(me->fsm);
 
         //boss entidad
         auto boss = std::make_shared<Entidad>();
+        boss->getStats()->hp_max = 255;
+        boss->getStats()->hp = 255;
+        boss->getStats()->str = 150;
+        boss->getStats()->agi = 50;
+        boss->getStats()->def = 255;
         auto boss_sprite = std::make_shared<CE::ISprite>(
                 CE::GestorAssets::Get().getTextura("boss_sheet"),
                 154.f,130.f,
@@ -132,12 +151,24 @@ namespace IVJ
         auto boss_target = std::make_shared<ITarget>(nullptr);
         boss_target->setTarget(*player);
 
-        boss->addComponente(boss_sprite)
+        boss->addComponente(boss_target)
+            .addComponente(boss_sprite)
             .addComponente(boss_me)
             .addComponente(std::make_shared<IRangoAggro>(500.f))
-            .addComponente(boss_target)
+
             .setPosicion(500.f,500.f);
         boss->setFSM(boss_me->fsm);
+
+        /// shader
+    auto shader = std::make_shared<CE::IShader>(
+    "",
+    ASSETS "/shaders/bossfrag.frag");
+
+    static sf::Texture boss_tex = boss_sprite->m_sprite.getTexture();
+
+    shader->setTextura("textura",&boss_tex);
+
+    boss->addComponente(shader);
 
         objetos.agregarPool(boss);
 
@@ -163,6 +194,12 @@ namespace IVJ
             }
             SistemaColAABBMid(*player, *obj, true);
         }
+        static float acum_tiempo = 0;
+        acum_tiempo += dt;
+        objetos.getPool()[116]->getComponente<CE::IShader>()->setEscalar("dt", &acum_tiempo);
+        //fin shaders
+        // lab9 borra toda entidad que esta en el pool que hp sea <=0
+        objetos.borrarPool();
     }
     void Escena_SpriteTiles::onInputs(const CE::Botones& accion)
     {
@@ -228,7 +265,7 @@ namespace IVJ
                 auto rango  = obj->getComponente<IRangoAggro>();
                 auto pos = obj->getTransformada()->posicion;
                 rango->marcador.setPosition({pos.x,pos.y});
-                CE::Render::Get().AddToDraw(rango->marcador);
+                //CE::Render::Get().AddToDraw(rango->marcador);
             }
         }
         CE::Render::Get().AddToDraw(*player);

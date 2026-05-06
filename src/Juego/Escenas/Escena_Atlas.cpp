@@ -37,6 +37,8 @@ namespace IVJ
         registrarBotones(sf::Keyboard::Scancode::Left,"izquierda");
         registrarBotones(sf::Keyboard::Scancode::D,"derecha");
         registrarBotones(sf::Keyboard::Scancode::Right,"derecha");
+        registrarBotones(sf::Keyboard::Scancode::LShift,"correr");
+        registrarBotones(sf::Keyboard::Scancode::RShift,"correr");
         registrarBotones(sf::Keyboard::Scancode::Enter,"aceptar");
 
         //cargar mapa 4 layers
@@ -61,9 +63,27 @@ namespace IVJ
 
 
         CE::GestorAssets::Get().agregarTextura(
-            "esnupi",                                //llave
+            "esnupi_walk",                                //llave
             ASSETS "/sprites/esnupi_walk.png",   //path del sprite
             CE::Vector2D{0.f,0.f},                  //pos dentro de la hoja
+            CE::Vector2D{80.f,20.f});               // dimensiones
+
+        CE::GestorAssets::Get().agregarTextura(
+            "esnupi_run",                                
+            ASSETS "/sprites/esnupi_run.png",   
+            CE::Vector2D{0.f,0.f},                  
+            CE::Vector2D{120.f,20.f});               // dimensiones
+
+        CE::GestorAssets::Get().agregarTextura(
+            "esnupi_jump",                                
+            ASSETS "/sprites/esnupi_jump.png",   
+            CE::Vector2D{0.f,0.f},                  
+            CE::Vector2D{100.f,20.f});               // dimensiones
+
+        CE::GestorAssets::Get().agregarTextura(
+            "esnupi_idle",                                
+            ASSETS "/sprites/esnupi_idle.png",   
+            CE::Vector2D{0.f,0.f},                  
             CE::Vector2D{80.f,20.f});               // dimensiones
 
         auto trans = player->getTransformada();
@@ -71,19 +91,20 @@ namespace IVJ
         player->setPosicion(300.f,300.f);
 
         auto sprite = std::make_shared<CE::ISprite>(
-            CE::GestorAssets::Get().getTextura("esnupi"), //textura
+            CE::GestorAssets::Get().getTextura("esnupi_walk"), //textura
             20,20,                                      // dim
             2.f);                                       // escala
 
-        player->addComponente(sprite);
+
         player->addComponente(std::make_shared<CE::IControl>());
         player->addComponente(std::make_shared<CE::IBoundingBox>(
-            CE::Vector2D{20*2.f,20*2.f} //dimensiones del sprite
+            CE::Vector2D{18*2.f,18*2.f} //dimensiones del sprite
         ));
         player->addComponente(std::make_shared<IGravedad>(1200.f, 600.f));
+        player->addComponente(sprite);
 
         auto me = std::make_shared<IMaquinaEstado>();
-        me->fsm = std::make_shared<IdleJugadores>();
+        me->fsm = std::make_shared<IdleJugadores>(4, 0.15f);
         player->addComponente(me);
         //ejecuta onEntrar para inicializar variables
         player->setFSM(me->fsm);
@@ -133,6 +154,10 @@ namespace IVJ
                 {
                     player->getComponente<CE::IControl>()->izq=true;
                 }
+                if(accion.getNombre() == "correr")
+                {
+                    player->getComponente<CE::IControl>()->run=true;
+                }
                 break;
             }
             case CE::Botones::TipoAccion::OnRelease:
@@ -152,6 +177,10 @@ namespace IVJ
                 if(accion.getNombre() == "izquierda")
                 {
                     player->getComponente<CE::IControl>()->izq=false;
+                }
+                if(accion.getNombre() == "correr")
+                {
+                    player->getComponente<CE::IControl>()->run=false;
                 }
                 break;
             }

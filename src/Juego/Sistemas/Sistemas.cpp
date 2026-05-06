@@ -58,6 +58,8 @@ namespace IVJ
         if(control->der) vel.x = trans->velocidad.x;
         if(control->izq) vel.x = -trans->velocidad.x;
 
+        if(control->run) vel.x *= 1.6f;
+
         //calculamos la dirección usando un triángulo rectángulo
         if(objeto->getComponente<ITriangulo>() || objeto->getComponente<CE::ISprite>())
         {

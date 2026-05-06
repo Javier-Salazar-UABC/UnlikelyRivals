@@ -20,6 +20,7 @@ namespace IVJ
     {
         auto pos = parent.getTransformada()->posicion;
         float distancia = pos.distancia(target);
+        parent.getComponente<CE::IShader>()->setEscalar("distancia",&distancia);
         //muy lejos para atacar
         if(distancia >200.f)
             return new IdleBoss(6,0.25f);

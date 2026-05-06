@@ -33,7 +33,7 @@ namespace CE
             exit(EXIT_FAILURE);
         }
 
-        textura->setSmooth(true);
+        textura->setSmooth(false);
         hashTexturas[key] = textura;
     }
     /*

@@ -16,5 +16,9 @@ namespace IVJ
         int s_w;
         int s_h;
         bool salto_soltado;
+        float act_tiempo;
+        int id_frame;
+        bool aterrizando;
+        float tiempo_aterrizaje;
     };
 }

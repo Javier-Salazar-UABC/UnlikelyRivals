@@ -1,6 +1,8 @@
 #include "MoverJugadores.hpp"
 #include "IdleJugadores.hpp"
 #include "SaltarJugador.hpp"
+#include "CorrerJugador.hpp"
+#include "Motor/Primitivos/GestorAssets.hpp"
 namespace IVJ
 {
     MoverJugadores::MoverJugadores(int max_frames,float frame_rate)
@@ -20,7 +22,11 @@ namespace IVJ
         }
         //si nada esta presionado regresar a idle
         if(!control.abj && !control.der && !control.izq)
-            return new IdleJugadores();
+            return new IdleJugadores(4, 0.15f);
+
+        // Si presionamos correr
+        if (control.run)
+            return new CorrerJugador(6, 0.08f);
 
         return nullptr;
     }
@@ -29,6 +35,7 @@ namespace IVJ
         sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
         s_w = obj.getComponente<CE::ISprite>()->width;
         s_h = obj.getComponente<CE::ISprite>()->height;
+        sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_walk"));
         id_frame=0;
     }
     void MoverJugadores::onSalir(const Entidad& obj)
