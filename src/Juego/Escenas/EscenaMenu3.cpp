@@ -1,4 +1,4 @@
-#include "EscenaMenu2.hpp"
+#include "EscenaMenu3.hpp"
 #include <Motor/Primitivos/GestorEscenas.hpp>
 #include <Motor/Render/Render.hpp>
 #include <Motor/Primitivos/GestorAssets.hpp>
@@ -6,7 +6,7 @@
 
 namespace IVJ
 {
-    void EscenaMenu2::createJaggedBox(sf::ConvexShape& shape, sf::Vector2f size, float skew)
+    void EscenaMenu3::createJaggedBox(sf::ConvexShape& shape, sf::Vector2f size, float skew)
     {
         shape.setPointCount(5);
         shape.setPoint(0, sf::Vector2f(0, 0));
@@ -16,7 +16,7 @@ namespace IVJ
         shape.setPoint(4, sf::Vector2f(-skew, size.y - 10));
     }
 
-    void EscenaMenu2::onInit()
+    void EscenaMenu3::onInit()
     {
         if (!inicializar) return;
 
@@ -31,17 +31,29 @@ namespace IVJ
 
         registrarBotones(sf::Keyboard::Scancode::W, "up");
         registrarBotones(sf::Keyboard::Scancode::S, "down");
-        registrarBotones(sf::Keyboard::Scancode::Up, "up");
-        registrarBotones(sf::Keyboard::Scancode::Down, "down");
         registrarBotones(sf::Keyboard::Scancode::Enter, "select");
         registrarBotones(sf::Keyboard::Scancode::Escape, "exit");
 
         updatePositions();
         
+        if (!crepuscularShader.loadFromFile(ASSETS "/shaders/crepuscular.frag", sf::Shader::Type::Fragment)) {
+            // Manejar error si falla la carga
+        }
+        
+        sf::Vector2u winSize = CE::Render::Get().GetVentana().getSize();
+        crepuscularShader.setUniform("resolution", sf::Vector2f((float)winSize.x, (float)winSize.y));
+        
+        if (!occlusionTexture.resize(winSize)) {
+            // Manejar error
+        }
+        // Asegurar que la vista de la textura de oclusion coincida con la de la ventana
+        sf::View view(sf::FloatRect({0, 0}, {(float)winSize.x, (float)winSize.y}));
+        occlusionTexture.setView(view);
+
         inicializar = false;
     }
 
-    void EscenaMenu2::setupBackground()
+    void EscenaMenu3::setupBackground()
     {
         sf::Vector2u winSize = CE::Render::Get().GetVentana().getSize();
         background.setSize({(float)winSize.x, (float)winSize.y});
@@ -66,22 +78,24 @@ namespace IVJ
                     dot.setPoint(2, {size, size});
                     dot.setPoint(3, {0, size});
                     dot.setPosition({(float)x, (float)y});
-                    dot.setFillColor(sf::Color(255, 0, 0, 40));
+                    dot.setFillColor(sf::Color(255, 0, 0, 40)); // Puntos mas brillantes
                     bgDecorations.push_back(dot);
                 }
             }
         }
     }
 
-    void EscenaMenu2::setupDecorations()
+    void EscenaMenu3::setupDecorations()
     {
         sf::Font& font = CE::GestorAssets::Get().getFont("p5_font");
 
+        // Linea de Seleccion
         selectionStripe.setSize({2000.0f, 80.0f});
         selectionStripe.setFillColor(sf::Color(211, 0, 0, 100));
         selectionStripe.setRotation(sf::degrees(-10.0f));
         selectionStripe.setOrigin({1000.0f, 40.0f});
 
+        // Texto flotante del background
         std::vector<std::string> bgWords = {"1", "2", "3", "PLAY"};
         for(int i=0; i<6; ++i) {
             auto txt = std::make_unique<sf::Text>(font);
@@ -93,6 +107,7 @@ namespace IVJ
             bgFloatingTexts.push_back(std::move(txt));
         }
 
+        // Lineas glitcheadas
         for(int i=0; i<15; ++i) {
             sf::ConvexShape line;
             createJaggedBox(line, {2000, 3}, 0);
@@ -102,20 +117,23 @@ namespace IVJ
             bgDecorations.push_back(line);
         }
 
+        // Personaje en el menu
         {
             sf::Texture& silTexture = CE::GestorAssets::Get().getTextura("p5_player");
+            silTexture.setSmooth(false); // Pixel art style
             silhouette = std::make_unique<sf::Sprite>(silTexture);
-            auto bounds = silhouette->getLocalBounds();
-            silhouette->setOrigin({bounds.size.x / 2.0f, bounds.size.y / 2.0f});
+            silhouette->setTextureRect(sf::IntRect({0, 0}, {20, 20}));
+            silhouette->setOrigin({10.0f, 10.0f});
             silhouette->setPosition({850, 400});
             silhouette->setScale({30.0f, 30.0f}); 
-            silhouette->setColor(sf::Color(255, 255, 255, 120)); 
+            silhouette->setColor(sf::Color(255, 255, 255,255)); 
         }
     }
 
-    void EscenaMenu2::setupMenu()
+    void EscenaMenu3::setupMenu()
     {
         sf::Font& font = CE::GestorAssets::Get().getFont("p5_font");
+
         std::vector<std::string> options = {"PLAY", "LOAD GAME", "CONFIG", "LEAVE"};
         for(size_t i=0; i<options.size(); ++i) {
             MenuItem item;
@@ -145,10 +163,12 @@ namespace IVJ
         }
     }
 
-    void EscenaMenu2::updatePositions()
+    void EscenaMenu3::updatePositions()
     {
         float startY = 150.0f;
         float spacing = 100.0f;
+
+        // Posiciones de los items principales
         for(size_t i=0; i<mainItems.size(); ++i) {
             if (currentState == MenuState::MAIN) {
                 float targetX = (i == (size_t)selectedIndex) ? 150.0f : 100.0f;
@@ -156,9 +176,11 @@ namespace IVJ
                 mainItems[i].box.setFillColor((i == (size_t)selectedIndex) ? sf::Color::White : P5_RED);
                 if (mainItems[i].sfText) mainItems[i].sfText->setFillColor((i == (size_t)selectedIndex) ? P5_BLACK : sf::Color::White);
             } else {
-                mainItems[i].targetPos = {-500.0f, startY + i * spacing};
+                mainItems[i].targetPos = {-500.0f, startY + i * spacing}; // Deslizarse a la izquierda
             }
         }
+
+        // pOSICIONES DE LOS ITEMS De los Settings
         for(size_t i=0; i<settingsItems.size(); ++i) {
             if (currentState == MenuState::SETTINGS) {
                 float targetX = (i == (size_t)selectedIndex) ? 150.0f : 100.0f;
@@ -166,30 +188,37 @@ namespace IVJ
                 settingsItems[i].box.setFillColor((i == (size_t)selectedIndex) ? sf::Color::White : P5_RED);
                 if (settingsItems[i].sfText) settingsItems[i].sfText->setFillColor((i == (size_t)selectedIndex) ? P5_BLACK : sf::Color::White);
             } else {
-                settingsItems[i].targetPos = {1500.0f, startY + i * spacing};
+                settingsItems[i].targetPos = {1500.0f, startY + i * spacing}; // Deslizarse hacia la derecha
             }
         }
     }
 
-    void EscenaMenu2::onUpdate(float dt)
+    void EscenaMenu3::onUpdate(float dt)
     {
         timer += dt;
+
         auto animateItems = [&](std::vector<MenuItem>& items) {
             for(size_t i=0; i<items.size(); ++i) {
                 sf::Vector2f currentPos = items[i].box.getPosition();
                 sf::Vector2f diff = items[i].targetPos - currentPos;
                 items[i].box.setPosition(currentPos + diff * 12.0f * dt);
+                
                 float wobble = std::sin(timer * 5.0f + i) * 2.0f;
                 items[i].box.setRotation(sf::degrees(items[i].rotation + wobble));
+                
                 if (items[i].sfText) {
                     items[i].sfText->setPosition(items[i].box.getPosition() + sf::Vector2f(20, 5));
                     items[i].sfText->setRotation(items[i].box.getRotation());
                 }
             }
         };
+
         animateItems(mainItems);
         animateItems(settingsItems);
 
+        // --- Background Dynamimco ---
+        
+        // Update Stripe position to follow selected item
         if (currentItems && selectedIndex < (int)currentItems->size()) {
             sf::Vector2f targetPos = (*currentItems)[selectedIndex].box.getPosition();
             sf::Vector2f currentStripePos = selectionStripe.getPosition();
@@ -197,20 +226,48 @@ namespace IVJ
                                         currentStripePos.y + (targetPos.y + 35 - currentStripePos.y) * 8.0f * dt});
         }
 
+        // Update Textos flotantes
         for(auto& txt : bgFloatingTexts) {
-            txt->move({-20.0f * dt, 0});
+            txt->move({-20.0f * dt, 0}); // Deslizarse a la izquierda
             if (txt->getPosition().x < -200) txt->setPosition({1200, (float)(rand()%700)});
         }
 
+        // Update Particulas
+        for(auto& p : particles) {
+            p.shape.move(p.velocity * dt);
+            if (rand()%100 == 0) p.shape.move({(float)(rand()%20-10), 0}); // Jitter
+            p.shape.rotate(sf::degrees(p.rotationSpeed * dt));
+            
+            sf::Vector2f pos = p.shape.getPosition();
+            if (pos.x < -50) p.shape.setPosition({1130, pos.y});
+            if (pos.x > 1130) p.shape.setPosition({-50, pos.y});
+            if (pos.y < -50) p.shape.setPosition({pos.x, 770});
+            if (pos.y > 770) p.shape.setPosition({pos.x, -50});
+        }
+
+        // --- Animacion de Snupi ---
         if (silhouette) {
+            animTimer += dt;
+            if (animTimer >= FRAME_TIME) {
+                animTimer = 0.0f;
+                currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
+                silhouette->setTextureRect(sf::IntRect({currentFrame * 20, 0}, {20, 20}));
+            }
+            
             float hover = std::sin(timer * 1.0f) * 15.0f;
             float shiftX = (currentState == MenuState::MAIN) ? 0.0f : -200.0f;
             sf::Vector2f currentPos = silhouette->getPosition();
-            silhouette->setPosition({currentPos.x + (900.0f + shiftX - currentPos.x) * 4.0f * dt, 500.0f + hover});
+            silhouette->setPosition({currentPos.x + (900.0f + shiftX - currentPos.x) * 4.0f * dt, 400.0f + hover});
         }
+
+        // --- Actualizar Shader ---
+        crepuscularShader.setUniform("time", timer);
+        sf::Vector2i mousePos = sf::Mouse::getPosition(CE::Render::Get().GetVentana());
+        float winH = (float)CE::Render::Get().GetVentana().getSize().y;
+        crepuscularShader.setUniform("mouse", sf::Vector2f((float)mousePos.x, winH - (float)mousePos.y));
     }
 
-    void EscenaMenu2::onInputs(const CE::Botones& accion)
+    void EscenaMenu3::onInputs(const CE::Botones& accion)
     {
         if (accion.getTipo() == CE::Botones::TipoAccion::OnPress) {
             if (accion.getNombre() == "up") {
@@ -221,6 +278,7 @@ namespace IVJ
                 updatePositions();
             } else if (accion.getNombre() == "select") {
                 MenuItem& selected = (*currentItems)[selectedIndex];
+                
                 if (currentState == MenuState::MAIN) {
                     if (selected.text == "PLAY") {
                         CE::GestorEscenas::Get().cambiarEscena("EAtlas");
@@ -238,9 +296,10 @@ namespace IVJ
                     if (selected.text == "BACK") {
                         currentState = MenuState::MAIN;
                         currentItems = &mainItems;
-                        selectedIndex = 2;
+                        selectedIndex = 2; // Retornar al menu
                         updatePositions();
                     }
+                    // Futuros settings de ser necesario
                 }
             } else if (accion.getNombre() == "exit") {
                 if (currentState != MenuState::MAIN) {
@@ -255,13 +314,51 @@ namespace IVJ
         }
     }
 
-    void EscenaMenu2::onRender()
+    void EscenaMenu3::onRender()
     {
-        CE::Render::Get().AddToDraw(background);
-        for(auto& shape : bgDecorations) CE::Render::Get().AddToDraw(shape);
-        for(auto& txt : bgFloatingTexts) if (txt) CE::Render::Get().AddToDraw(*txt);
+        // --- Generar Mapa de Oclusion ---
+        occlusionTexture.clear(sf::Color::Black);
+        
+        // Dibujamos los cuadros de los items como oclusores (en blanco)
+        if (currentItems) {
+            for(auto& item : *currentItems) {
+                sf::Color oldColor = item.box.getFillColor();
+                item.box.setFillColor(sf::Color::White);
+                occlusionTexture.draw(item.box);
+                item.box.setFillColor(oldColor);
+            }
+        }
+        
+        // El personaje tambien puede obstruir la luz
+        if (silhouette) {
+            sf::Color oldColor = silhouette->getColor();
+            silhouette->setColor(sf::Color::White);
+            occlusionTexture.draw(*silhouette);
+            silhouette->setColor(oldColor);
+        }
+        
+        occlusionTexture.display();
+        
+        // Pasar el mapa al shader
+        crepuscularShader.setUniform("occlusionMap", occlusionTexture.getTexture());
+
+        CE::Render::Get().AddToDraw(background, &crepuscularShader);
+        for(auto& shape : bgDecorations) {
+            CE::Render::Get().AddToDraw(shape);
+        }
+
+        for(auto& txt : bgFloatingTexts) {
+            if (txt) CE::Render::Get().AddToDraw(*txt);
+        }
+
         CE::Render::Get().AddToDraw(selectionStripe);
+
         if (silhouette) CE::Render::Get().AddToDraw(*silhouette);
+
+        for(auto& p : particles) {
+            CE::Render::Get().AddToDraw(p.shape);
+        }
+        
         for(auto& item : mainItems) {
             CE::Render::Get().AddToDraw(item.box);
             if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
@@ -272,5 +369,5 @@ namespace IVJ
         }
     }
 
-    void EscenaMenu2::onFinal() {}
+    void EscenaMenu3::onFinal() {}
 }
