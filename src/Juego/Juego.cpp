@@ -152,12 +152,44 @@ namespace IVJ
                 auto iterador = escena_actual->getBotones().find(scan);
                 if(iterador!=escena_actual->getBotones().end())
                 {
-                    //se encontro el input del control
                     std::string strAccion = iterador->second;
                     escena_actual->onInputs(CE::Botones(strAccion,b_tipo,scan));
                 }
             }
 
+            // --- PROCESAR JOYSTICK ---
+            if (const auto* joy_pressed = evento.getIf<sf::Event::JoystickButtonPressed>())
+            {
+                unsigned int joyId = joy_pressed->joystickId;
+                unsigned int btn = joy_pressed->button;
+                auto iter = escena_actual->getJoyBotones().find({joyId, btn});
+                if (iter != escena_actual->getJoyBotones().end())
+                {
+                    escena_actual->onInputs(CE::Botones(iter->second, CE::Botones::TipoAccion::OnPress, joyId, btn));
+                }
+            }
+            else if (const auto* joy_released = evento.getIf<sf::Event::JoystickButtonReleased>())
+            {
+                unsigned int joyId = joy_released->joystickId;
+                unsigned int btn = joy_released->button;
+                auto iter = escena_actual->getJoyBotones().find({joyId, btn});
+                if (iter != escena_actual->getJoyBotones().end())
+                {
+                    escena_actual->onInputs(CE::Botones(iter->second, CE::Botones::TipoAccion::OnRelease, joyId, btn));
+                }
+            }
+            else if (const auto* joy_moved = evento.getIf<sf::Event::JoystickMoved>())
+            {
+                unsigned int joyId = joy_moved->joystickId;
+                sf::Joystick::Axis axis = joy_moved->axis;
+                float pos = joy_moved->position;
+                
+                auto iter = escena_actual->getJoyEjes().find({joyId, axis});
+                if (iter != escena_actual->getJoyEjes().end())
+                {
+                    escena_actual->onInputs(CE::Botones(iter->second, CE::Botones::TipoAccion::Moved, joyId, axis, pos));
+                }
+            }
         }
     }
     void Juego::OnUpdate(float dt)

@@ -39,6 +39,27 @@ namespace IVJ
         registrarBotones(sf::Keyboard::Scancode::Enter,"aceptar");
         registrarBotones(sf::Keyboard::Scancode::J,"atacar");
 
+        // --- Mapeo de Control (Switch Pro / Xbox / PS) ---
+        for (unsigned int i = 0; i < 4; ++i)
+        {
+            // Botones principales (A/B/X/Y o Cross/Circle/Square/Triangle)
+            registrarJoystickBoton(i, 0, "atacar");
+            registrarJoystickBoton(i, 1, "atacar");
+            registrarJoystickBoton(i, 2, "correr");
+            registrarJoystickBoton(i, 3, "correr");
+            
+            // Triggers / Bumpers
+            registrarJoystickBoton(i, 4, "correr"); // L1 / LB
+            registrarJoystickBoton(i, 5, "correr"); // R1 / RB
+            registrarJoystickBoton(i, 7, "atacar"); // R2 / ZR
+            
+            // Ejes para movimiento (Sticks y D-Pad)
+            registrarJoystickEje(i, sf::Joystick::Axis::X, "horizontal");
+            registrarJoystickEje(i, sf::Joystick::Axis::Y, "vertical");
+            registrarJoystickEje(i, sf::Joystick::Axis::PovX, "horizontal");
+            registrarJoystickEje(i, sf::Joystick::Axis::PovY, "vertical");
+        }
+
         //cargar mapa 4 layers
         tiles_layers.push_back(TileMap()); //cielo
         tiles_layers.push_back(TileMap()); //montes
@@ -238,6 +259,21 @@ namespace IVJ
                 if(accion.getNombre() == "atacar")
                 {
                     player->getComponente<CE::IControl>()->acc=false;
+                }
+                break;
+            }
+            case CE::Botones::TipoAccion::Moved:
+            {
+                float pos = accion.getAxisPos();
+                if (accion.getNombre() == "horizontal")
+                {
+                    player->getComponente<CE::IControl>()->der = (pos > 30.f);
+                    player->getComponente<CE::IControl>()->izq = (pos < -30.f);
+                }
+                if (accion.getNombre() == "vertical")
+                {
+                    player->getComponente<CE::IControl>()->abj = (pos > 30.f);
+                    player->getComponente<CE::IControl>()->arr = (pos < -30.f);
                 }
                 break;
             }

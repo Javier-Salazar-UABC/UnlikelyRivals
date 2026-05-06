@@ -3,7 +3,14 @@
 namespace CE
 {
     Botones::Botones(const std::string& nombre, const TipoAccion& tipo, const sf::Keyboard::Scancode& scan)
-    :nombre{nombre},accion{tipo},tecla{scan}{}
+    :nombre{nombre},accion{tipo},tecla{scan}, source{InputSource::Keyboard}{}
+
+    Botones::Botones(const std::string& nombre, const TipoAccion& tipo, unsigned int joyId, unsigned int button)
+    :nombre{nombre}, accion{tipo}, joystickId{joyId}, button{button}, source{InputSource::JoystickButton}{}
+
+    Botones::Botones(const std::string& nombre, const TipoAccion& tipo, unsigned int joyId, sf::Joystick::Axis axis, float pos)
+    :nombre{nombre}, accion{tipo}, joystickId{joyId}, axis{axis}, axisPos{pos}, source{InputSource::JoystickAxis}{}
+
     const std::string Botones::getNombre() const
     {
         return nombre;
@@ -16,6 +23,8 @@ namespace CE
                 return "OnPress";
             case TipoAccion::OnRelease:
                 return "OnRelease";
+            case TipoAccion::Moved:
+                return "Moved";
             default:
                 return "None";
         }
@@ -30,6 +39,7 @@ namespace CE
     }
     const std::string Botones::toString() const
     {
-        return nombre + "--> "+getTipoString();  
+        std::string srcStr = (source == InputSource::Keyboard) ? "KB" : "JOY";
+        return "[" + srcStr + "] " + nombre + " --> " + getTipoString();  
     }
 }

@@ -26,6 +26,12 @@ namespace IVJ
         setupBackground();
         setupDecorations();
         setupMenu();
+        
+        instructionText = std::make_unique<sf::Text>(CE::GestorAssets::Get().getFont("p5_font"));
+        instructionText->setCharacterSize(20);
+        instructionText->setFillColor(sf::Color(255, 255, 255, 180));
+        instructionText->setPosition({50.f, 680.f});
+        instructionText->setString("");
 
         currentItems = &mainItems;
 
@@ -33,6 +39,16 @@ namespace IVJ
         registrarBotones(sf::Keyboard::Scancode::S, "down");
         registrarBotones(sf::Keyboard::Scancode::Enter, "select");
         registrarBotones(sf::Keyboard::Scancode::Escape, "exit");
+
+        for (int i = 0; i < 4; ++i)
+        {
+            registrarJoystickBoton(i, 0, "select"); // A/B (depende del control)
+            registrarJoystickBoton(i, 1, "select");
+            registrarJoystickBoton(i, 6, "exit");   // Select / Back
+            registrarJoystickBoton(i, 7, "select"); // Start
+            registrarJoystickEje(i, sf::Joystick::Axis::Y, "vertical");
+            registrarJoystickEje(i, sf::Joystick::Axis::PovY, "vertical");
+        }
 
         updatePositions();
         
@@ -161,6 +177,24 @@ namespace IVJ
             item.box.setPosition({1500, 200}); 
             settingsItems.push_back(std::move(item));
         }
+
+        std::vector<std::pair<std::string, std::string>> cOptions = {
+            {"arriba", "UP"}, {"abajo", "DOWN"}, {"izquierda", "LEFT"}, 
+            {"derecha", "RIGHT"}, {"correr", "DASH"}, {"atacar", "ATTACK"}, {"BACK", "BACK"}
+        };
+        for(size_t i=0; i<cOptions.size(); ++i) {
+            MenuItem item;
+            item.text = cOptions[i].first; // action name
+            item.sfText = std::make_unique<sf::Text>(font);
+            item.sfText->setString(cOptions[i].second);
+            item.sfText->setCharacterSize(35);
+            item.sfText->setStyle(sf::Text::Bold);
+            createJaggedBox(item.box, {400, 60}, 25);
+            item.rotation = -5.0f + (static_cast<float>(rand() % 10));
+            item.box.setPosition({-1000, 200}); 
+            controlsItems.push_back(std::move(item));
+        }
+        updateMappingTexts();
     }
 
     void EscenaMenu3::updatePositions()
@@ -191,6 +225,21 @@ namespace IVJ
                 settingsItems[i].targetPos = {1500.0f, startY + i * spacing}; // Deslizarse hacia la derecha
             }
         }
+
+        // Posiciones de los items de Controles
+        for(size_t i=0; i<controlsItems.size(); ++i) {
+            if (currentState == MenuState::CONTROLS) {
+                float targetX = (i == (size_t)selectedIndex) ? 150.0f : 100.0f;
+                controlsItems[i].targetPos = {targetX, startY + i * spacing};
+                controlsItems[i].box.setFillColor((i == (size_t)selectedIndex) ? sf::Color::White : P5_RED);
+                if (controlsItems[i].sfText) controlsItems[i].sfText->setFillColor((i == (size_t)selectedIndex) ? P5_BLACK : sf::Color::White);
+                
+                if (listeningForKey && i == (size_t)selectedIndex) controlsItems[i].box.setFillColor(sf::Color::Yellow);
+                if (listeningForJoy && i == (size_t)selectedIndex) controlsItems[i].box.setFillColor(sf::Color::Cyan);
+            } else {
+                controlsItems[i].targetPos = {-1000.0f, startY + i * spacing}; // Deslizarse hacia la izquierda
+            }
+        }
     }
 
     void EscenaMenu3::onUpdate(float dt)
@@ -215,6 +264,7 @@ namespace IVJ
 
         animateItems(mainItems);
         animateItems(settingsItems);
+        animateItems(controlsItems);
 
         // --- Background Dynamimco ---
         
@@ -298,8 +348,32 @@ namespace IVJ
                         currentItems = &mainItems;
                         selectedIndex = 2; // Retornar al menu
                         updatePositions();
+                        instructionText->setString("");
+                    } else if (selected.text == "CONTROLS") {
+                        currentState = MenuState::CONTROLS;
+                        currentItems = &controlsItems;
+                        selectedIndex = 0;
+                        updatePositions();
+                        instructionText->setString("Enter: KB Map | Y/X: JOY Map");
                     }
-                    // Futuros settings de ser necesario
+                } else if (currentState == MenuState::CONTROLS) {
+                    if (selected.text == "BACK") {
+                        currentState = MenuState::SETTINGS;
+                        currentItems = &settingsItems;
+                        selectedIndex = 2; // Volver a Controls button
+                        updatePositions();
+                        instructionText->setString("");
+                    } else {
+                        listeningForKey = true;
+                        instructionText->setString("Press any KEY for " + selected.text);
+                        updatePositions();
+                    }
+                }
+            } else if (accion.getNombre() == "remap_joy") {
+                if (currentState == MenuState::CONTROLS) {
+                    listeningForJoy = true;
+                    instructionText->setString("Press any BUTTON for " + (*currentItems)[selectedIndex].text);
+                    updatePositions();
                 }
             } else if (accion.getNombre() == "exit") {
                 if (currentState != MenuState::MAIN) {
@@ -307,8 +381,33 @@ namespace IVJ
                     currentItems = &mainItems;
                     selectedIndex = 0;
                     updatePositions();
+                    instructionText->setString("");
                 } else {
                     CE::Render::Get().GetVentana().close();
+                }
+            }
+        }
+        else if (accion.getTipo() == CE::Botones::TipoAccion::Moved)
+        {
+            float pos = accion.getAxisPos();
+            if (accion.getNombre() == "vertical")
+            {
+                if (std::abs(pos) > 50.f)
+                {
+                    if (!axisInUse)
+                    {
+                        if (pos > 0.f)
+                            selectedIndex = (selectedIndex + 1) % currentItems->size();
+                        else
+                            selectedIndex = (selectedIndex - 1 + currentItems->size()) % currentItems->size();
+                        
+                        updatePositions();
+                        axisInUse = true;
+                    }
+                }
+                else
+                {
+                    axisInUse = false;
                 }
             }
         }
@@ -367,7 +466,103 @@ namespace IVJ
             CE::Render::Get().AddToDraw(item.box);
             if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
         }
+        for(auto& item : controlsItems) {
+            CE::Render::Get().AddToDraw(item.box);
+            if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
+        }
+
+        if (currentState == MenuState::CONTROLS) {
+            CE::Render::Get().AddToDraw(*instructionText);
+        }
+
+        // --- LOGICA DE REMAPEO ---
+        if (listeningForKey && currentItems == &controlsItems) {
+            // SFML 3 suele tener ScancodeCount o simplemente podemos usar un rango seguro
+            for (int k = 0; k < 150; ++k) { 
+                if (sf::Keyboard::isKeyPressed((sf::Keyboard::Scancode)k)) {
+                    if (k == (int)sf::Keyboard::Scan::Enter) continue;
+                    
+                    std::string act = (*currentItems)[selectedIndex].text;
+                    auto& atlas = *CE::GestorEscenas::Get().getTodasEscenas().at("EAtlas");
+                    atlas.registrarBotones((sf::Keyboard::Scancode)k, act);
+                    
+                    listeningForKey = false;
+                    instructionText->setString("Enter: KB Map | Y/X: JOY Map");
+                    updateMappingTexts();
+                    updatePositions();
+                    break;
+                }
+            }
+        }
+
+        if (listeningForJoy && currentItems == &controlsItems) {
+            for (unsigned int b = 0; b < 16; ++b) {
+                if (sf::Joystick::isButtonPressed(0, b)) {
+                    std::string act = (*currentItems)[selectedIndex].text;
+                    auto& atlas = *CE::GestorEscenas::Get().getTodasEscenas().at("EAtlas");
+                    
+                    for(int i=0; i<4; ++i)
+                        atlas.registrarJoystickBoton(i, b, act);
+                    
+                    listeningForJoy = false;
+                    instructionText->setString("Enter: KB Map | Y/X: JOY Map");
+                    updateMappingTexts();
+                    updatePositions();
+                    break;
+                }
+            }
+        }
     }
 
     void EscenaMenu3::onFinal() {}
+
+    void EscenaMenu3::updateMappingTexts()
+    {
+        auto& atlas = *CE::GestorEscenas::Get().getTodasEscenas().at("EAtlas");
+        
+        for (auto& item : controlsItems) {
+            if (item.text == "BACK") continue;
+
+            std::string mapping = "";
+            // Buscar KB
+            for (auto const& [scan, act] : atlas.getBotones()) {
+                if (act == item.text) {
+                    mapping += getScancodeName(scan) + " ";
+                }
+            }
+            // Buscar JOY (simplificado)
+            for (auto const& [pair, act] : atlas.joyBotones) {
+                if (act == item.text && pair.first == 0) {
+                    mapping += "B" + std::to_string(pair.second) + " ";
+                }
+            }
+
+            std::string displayName = item.text;
+            if (item.text == "arriba") displayName = "UP";
+            else if (item.text == "abajo") displayName = "DOWN";
+            else if (item.text == "izquierda") displayName = "LEFT";
+            else if (item.text == "derecha") displayName = "RIGHT";
+            else if (item.text == "correr") displayName = "DASH";
+            else if (item.text == "atacar") displayName = "ATTACK";
+
+            item.sfText->setString(displayName + ": " + mapping);
+        }
+    }
+
+    std::string EscenaMenu3::getScancodeName(sf::Keyboard::Scancode code)
+    {
+        if (code >= sf::Keyboard::Scan::A && code <= sf::Keyboard::Scan::Z)
+            return std::string(1, 'A' + (int)code - (int)sf::Keyboard::Scan::A);
+        if (code == sf::Keyboard::Scan::W) return "W";
+        if (code == sf::Keyboard::Scan::S) return "S";
+        if (code == sf::Keyboard::Scan::A) return "A";
+        if (code == sf::Keyboard::Scan::D) return "D";
+        if (code == sf::Keyboard::Scan::Up) return "UP";
+        if (code == sf::Keyboard::Scan::Down) return "DOWN";
+        if (code == sf::Keyboard::Scan::Left) return "LEFT";
+        if (code == sf::Keyboard::Scan::Right) return "RIGHT";
+        if (code == sf::Keyboard::Scan::LShift) return "LSHIFT";
+        if (code == sf::Keyboard::Scan::J) return "J";
+        return "K" + std::to_string((int)code);
+    }
 }

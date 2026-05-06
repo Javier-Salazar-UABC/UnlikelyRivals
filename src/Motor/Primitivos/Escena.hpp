@@ -28,6 +28,8 @@ namespace CE
     {
         /** @brief Tipo alias para mapeo de botones: scancode → nombre de acción */
         typedef std::map<sf::Keyboard::Scancode,std::string> HashBotones;
+        typedef std::map<std::pair<unsigned int, unsigned int>, std::string> HashJoyBotones;
+        typedef std::map<std::pair<unsigned int, sf::Joystick::Axis>, std::string> HashJoyEjes;
         
         public:
             /** @brief Destructor virtual */
@@ -74,15 +76,30 @@ namespace CE
             {
                 botones[boton]=accion;
             }
+
+            /**
+             * @brief Registra un mapeo de botón de joystick a acción.
+             */
+            void registrarJoystickBoton(unsigned int joyId, unsigned int button, const std::string &accion)
+            {
+                joyBotones[{joyId, button}] = accion;
+            }
+
+            /**
+             * @brief Registra un mapeo de eje de joystick a acción.
+             */
+            void registrarJoystickEje(unsigned int joyId, sf::Joystick::Axis axis, const std::string &accion)
+            {
+                joyEjes[{joyId, axis}] = accion;
+            }
             
             /**
              * @brief Obtiene el mapeo de botones a acciones.
              * @return Referencia mutable al mapa de botones
              */
-            HashBotones &getBotones()
-            {
-                return botones;
-            }
+            HashBotones &getBotones() { return botones; }
+            HashJoyBotones &getJoyBotones() { return joyBotones; }
+            HashJoyEjes &getJoyEjes() { return joyEjes; }
             
             /**
              * @brief Obtiene el pool de objetos de la escena.
@@ -102,9 +119,9 @@ namespace CE
             {
                 std::vector<sf::Keyboard::Scancode> b;
                 b.reserve(botones.size());
-                for(auto k = botones.begin();k!=botones.end();k++)
+                for(auto const& [key, val] : botones)
                 {
-                    b.emplace_back(k->first);
+                    b.emplace_back(key);
                 }
                 return b;
             }
@@ -125,6 +142,8 @@ namespace CE
         public:
             /** @brief Mapeo de botones a nombres de acciones (público para acceso directo) */
             HashBotones botones;
+            HashJoyBotones joyBotones;
+            HashJoyEjes joyEjes;
             
             /** @brief Mapeo de botones GUI (interfaz gráfica) */
             HashBotones gui;

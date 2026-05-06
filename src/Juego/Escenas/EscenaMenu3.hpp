@@ -18,7 +18,7 @@ namespace IVJ
         void onInputs(const CE::Botones& accion) override;
         void onRender() override;
         
-        enum class MenuState { MAIN, SETTINGS, GALLERY };
+        enum class MenuState { MAIN, SETTINGS, CONTROLS, GALLERY };
 
     private:
         struct Particle {
@@ -45,9 +45,16 @@ namespace IVJ
         int selectedIndex{0};
         std::vector<MenuItem> mainItems;
         std::vector<MenuItem> settingsItems;
+        std::vector<MenuItem> controlsItems;
         
         std::vector<MenuItem>* currentItems;
         
+        void updateMappingTexts();
+        std::string getScancodeName(sf::Keyboard::Scancode code);
+        bool listeningForKey{false};
+        bool listeningForJoy{false};
+        std::unique_ptr<sf::Text> instructionText;
+
         sf::RectangleShape background;
         std::vector<sf::ConvexShape> bgDecorations;
         std::vector<Particle> particles;
@@ -59,6 +66,7 @@ namespace IVJ
         sf::Shader crepuscularShader;
         float timer{0.0f};
         float animTimer{0.0f};
+        bool axisInUse{false};
         int currentFrame{0};
         const int TOTAL_FRAMES = 4;
         const float FRAME_TIME = 0.15f;

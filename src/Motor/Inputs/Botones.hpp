@@ -26,56 +26,58 @@ namespace CE
             {
                 OnPress,
                 OnRelease,
+                Moved,
                 None
+            };
+
+            enum class InputSource
+            {
+                Keyboard,
+                JoystickButton,
+                JoystickAxis
             };
             
         public:
             /**
-             * @brief Constructor del botón.
-             * @param nombre Identificador textual del botón (ej: "saltar", "atacar")
-             * @param tipo Tipo de acción (OnPress, OnRelease)
-             * @param scan Escancode de SFML de la tecla asociada
+             * @brief Constructor para teclado.
              */
-            Botones(const std::string& nombre, const TipoAccion& tipo,const sf::Keyboard::Scancode& scan);
+            Botones(const std::string& nombre, const TipoAccion& tipo, const sf::Keyboard::Scancode& scan);
             
             /**
-             * @brief Obtiene el nombre/identificador del botón.
-             * @return Nombre del botón como cadena constante
+             * @brief Constructor para joystick.
              */
+            Botones(const std::string& nombre, const TipoAccion& tipo, unsigned int joyId, unsigned int button);
+
+            /**
+             * @brief Constructor para ejes de joystick.
+             */
+            Botones(const std::string& nombre, const TipoAccion& tipo, unsigned int joyId, sf::Joystick::Axis axis, float pos);
+
             const std::string getNombre() const;
-            
-            /**
-             * @brief Obtiene el tipo de acción como cadena de texto.
-             * @return Representación textual del tipo de acción ("OnPress", "OnRelease", "None")
-             */
             const std::string getTipoString() const;
-            
-            /**
-             * @brief Obtiene el tipo de acción como enumeración.
-             * @return Referencia constante al TipoAccion del botón
-             */
             const TipoAccion& getTipo() const;
-            
-            /**
-             * @brief Obtiene representación textual completa del botón.
-             * @return Cadena con formato: "nombre: tipo"
-             */
             const std::string toString() const;
             
-            /**
-             * @brief Obtiene el escancode de la tecla SFML.
-             * @return Referencia constante al sf::Keyboard::Scancode
-             */
             const sf::Keyboard::Scancode& getScancode() const;
             
+            InputSource getSource() const { return source; }
+            unsigned int getJoystickId() const { return joystickId; }
+            unsigned int getButton() const { return button; }
+            sf::Joystick::Axis getAxis() const { return axis; }
+            float getAxisPos() const { return axisPos; }
+
         private:
-            /** @brief Nombre/identificador del botón (ej: "saltar") */
             std::string nombre;
-            
-            /** @brief Tipo de acción asociada (OnPress, OnRelease) */
             TipoAccion accion{TipoAccion::None};
+            InputSource source{InputSource::Keyboard};
+
+            // Keyboard data
+            sf::Keyboard::Scancode tecla{sf::Keyboard::Scancode::Unknown};
             
-            /** @brief Escancode de SFML de la tecla del teclado */
-            sf::Keyboard::Scancode tecla;
+            // Joystick data
+            unsigned int joystickId{0};
+            unsigned int button{0};
+            sf::Joystick::Axis axis{sf::Joystick::Axis::X};
+            float axisPos{0.f};
     };
 }
