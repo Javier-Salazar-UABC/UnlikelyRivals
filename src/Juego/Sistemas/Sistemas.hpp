@@ -49,5 +49,7 @@ namespace IVJ
     [[maybe_unused]] void SistemaGolpe(const std::shared_ptr<Entidad>& jugador, CE::Pool& objetos);
     [[maybe_unused]] void SistemaDibujarGolpe(const std::shared_ptr<Entidad>& jugador);
     [[maybe_unused]] void SistemaLimitesPantalla(const std::vector<std::shared_ptr<CE::Objeto>>& entes);
-
+    [[maybe_unused]] void SistemaMuerteBlastZone(const std::vector<std::shared_ptr<CE::Objeto>>& entes, sf::Vector2f centro, float radio, float dt);
+    [[maybe_unused]] void SistemaUpdateParticulasMuerte(float dt);
+    [[maybe_unused]] void SistemaDibujarParticulasMuerte();
 }

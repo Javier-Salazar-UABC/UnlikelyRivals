@@ -210,6 +210,9 @@ namespace IVJ
         if (p2) targets.push_back(p2);
         SistemaLimitesPantalla(targets);
 
+        // --- MUERTE POR BLAST ZONE (Círculo de muerte estilo Smash) ---
+        SistemaMuerteBlastZone(targets, {512, 360}, 750.0f, dt);
+
         // Segunda pasada: física de objetos dinámicos (los que tienen IGravedad)
         // y su colisión vs todos los tiles/objetos estáticos del pool
         for(auto& obj: objetos.getPool())
@@ -326,18 +329,7 @@ namespace IVJ
 #if DEBUG
         SistemaDibujarGolpe(player);
 #endif
-/*
-#if DEBUG
-        auto cam = &CE::GestorCamaras::Get().getCamaraActiva();
-        auto csv = (CE::CamaraSnapVentana*)cam;
-        auto csvpos = csv->getTransformada().posicion;
-        sf::RectangleShape debugcam{{csv->m_vdim.x,csv->m_vdim.y}};
-        debugcam.setOrigin({csv->m_vdim.x/2.f,csv->m_vdim.y/2.f});
-        debugcam.setPosition({csvpos.x,csvpos.y});
-        debugcam.setOutlineThickness(3.f);
-        debugcam.setOutlineColor(sf::Color::Yellow);
-        debugcam.setFillColor(sf::Color::Transparent);
-        CE::Render::Get().AddToDraw(debugcam);
-#endif*/
+        // --- DIBUJAR PARTÍCULAS DE MUERTE (Al final para que estén arriba) ---
+        SistemaDibujarParticulasMuerte();
     }
 }

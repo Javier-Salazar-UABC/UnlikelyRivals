@@ -3,7 +3,10 @@
 #include <Juego/Componentes/IJComponentes.hpp>
 #include "../../Motor/Primitivos/GestorAssets.hpp"
 #include "../objetos/Entidad.hpp"
-#include <math.h>
+#include <cmath>
+#include <cstdlib>
+#include <cstdint>
+#include <algorithm>
 #include "../../Motor/Utils/Lerp.hpp"
 #include "../../Motor/Render/Render.hpp"
 #include "../../Motor/Primitivos/GestorColisiones.hpp"
@@ -698,6 +701,121 @@ namespace IVJ
                 CE::Render::Get().AddToDraw(line);
             }
         }
+    }
+
+    struct BlastParticle {
+        sf::RectangleShape shape;
+        sf::Vector2f velocity;
+        float lifetime;
+        float maxLifetime;
+    };
+    static std::vector<BlastParticle> blastParticles;
+
+    void SistemaUpdateParticulasMuerte(float dt)
+    {
+        for (auto it = blastParticles.begin(); it != blastParticles.end();) {
+            it->lifetime -= dt;
+            if (it->lifetime <= 0) {
+                it = blastParticles.erase(it);
+            } else {
+                it->shape.move(it->velocity * dt);
+                // Desvanecimiento
+                float alpha = (it->lifetime / it->maxLifetime) * 255.0f;
+                sf::Color c = it->shape.getFillColor();
+                c.a = static_cast<std::uint8_t>(alpha);
+                it->shape.setFillColor(c);
+                ++it;
+            }
+        }
+    }
+
+    void SistemaDibujarParticulasMuerte()
+    {
+        for (auto& p : blastParticles) {
+            CE::Render::Get().AddToDraw(p.shape);
+        }
+    }
+
+    void GenerarEfectoMuerte(sf::Vector2f pos, sf::Vector2f dir)
+    {
+        // Normalizar dirección para tener una referencia
+        float mag = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+        if (mag > 0) dir /= mag;
+
+        // Crear una explosión de líneas hacia arriba (50 partículas)
+        for (int i = 0; i < 50; ++i) {
+            BlastParticle p;
+            p.maxLifetime = 0.8f + (rand() % 80) / 100.0f; 
+            p.lifetime = p.maxLifetime;
+            
+            // Líneas delgadas y largas (estilo Smash K.O.)
+            float width = 2.0f + (rand() % 4);
+            float height = 20.0f + (rand() % 60);
+            p.shape.setSize({width, height});
+            p.shape.setOrigin({width / 2.0f, height / 2.0f});
+            p.shape.setPosition(pos);
+            
+            // Colores vibrantes
+            int r = 255;
+            int g = 100 + rand() % 155;
+            int b = 0;
+            p.shape.setFillColor(sf::Color(r, g, b, 255));
+            
+            // Velocidad: Principalmente hacia arriba (bias negativo en Y)
+            float speedX = ((rand() % 200) - 100.0f); // Poco movimiento lateral
+            float speedY = -(600.0f + (rand() % 800)); // Mucho movimiento hacia arriba
+            
+            p.velocity = {speedX, speedY};
+            
+            // Rotación inicial leve para dinamismo
+            p.shape.setRotation(sf::degrees(((rand() % 20) - 10.0f)));
+            
+            blastParticles.push_back(p);
+        }
+    }
+
+    void SistemaMuerteBlastZone(const std::vector<std::shared_ptr<CE::Objeto>>& entes, sf::Vector2f centro, float radio, float dt)
+    {
+        // Dibujar el círculo del Blast Zone en modo Debug si se desea
+#if DEBUG
+        sf::CircleShape zone(radio);
+        zone.setOrigin({radio, radio});
+        zone.setPosition(centro);
+        zone.setFillColor(sf::Color(255, 0, 0, 20));
+        zone.setOutlineThickness(5.0f);
+        zone.setOutlineColor(sf::Color(255, 0, 0, 50));
+        CE::Render::Get().AddToDraw(zone);
+#endif
+
+        for (auto& ente : entes) {
+            if (!ente) continue;
+            auto trans = ente->getTransformada();
+            sf::Vector2f pos = {trans->posicion.x, trans->posicion.y};
+            sf::Vector2f diff = pos - centro;
+            float distSq = diff.x * diff.x + diff.y * diff.y;
+
+            if (distSq > radio * radio) {
+                // MUERTE
+                sf::Vector2f deathDir = diff; // Dirección hacia afuera
+                GenerarEfectoMuerte(pos, deathDir);
+
+                // Respawn
+                trans->posicion = {centro.x, centro.y - 100.0f};
+                trans->velocidad = {0, 0};
+                
+                if (ente->tieneComponente<IGravedad>()) {
+                    ente->getComponente<IGravedad>()->velocidad_Y = 0;
+                }
+
+                auto stats = ente->getStats();
+                if (stats) {
+                    stats->porcentaje_danio = 0;
+                    stats->hit_count = 0;
+                }
+            }
+        }
+        
+        SistemaUpdateParticulasMuerte(dt);
     }
 }
 
