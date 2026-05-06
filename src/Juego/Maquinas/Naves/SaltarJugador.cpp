@@ -4,12 +4,14 @@
 #include "../../Componentes/IJComponentes.hpp"
 #include "CorrerJugador.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
+#include "GolpearJugador.hpp"
 
 namespace IVJ
 {
-    SaltarJugador::SaltarJugador()
+    SaltarJugador::SaltarJugador(bool aplicar_fuerza)
         :FSM{},sprite{nullptr},s_w{0},s_h{0},salto_soltado{false},
-        act_tiempo{0.1f}, id_frame{0}, aterrizando{false}, tiempo_aterrizaje{0.1f}
+        act_tiempo{0.1f}, id_frame{0}, aterrizando{false}, tiempo_aterrizaje{0.1f},
+        aplicar_fuerza{aplicar_fuerza}
     {
         nombre = "SaltarJugador";
     }
@@ -33,6 +35,10 @@ namespace IVJ
                 return new SaltarJugador(); // Reinicia el estado de salto
             }
         }
+        
+        if (control.acc) {
+            return new GolpearJugador(4, 0.1f);
+        }
 
         return nullptr;
     }
@@ -43,7 +49,7 @@ namespace IVJ
         s_h = obj.getComponente<CE::ISprite>()->height;
         sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_jump"));
 
-        if (obj.tieneComponente<IGravedad>()) {
+        if (aplicar_fuerza && obj.tieneComponente<IGravedad>()) {
             auto grav = obj.getComponente<IGravedad>();
             if (grav->saltos_restantes > 0) {
                 grav->velocidad_Y = -350.f; // Fuerza del salto

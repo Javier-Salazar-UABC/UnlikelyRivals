@@ -142,6 +142,9 @@ namespace CE
             
             /** @brief Estadística de agilidad (velocidad y evasión) */
             std::uint8_t agi;
+
+            /** @brief Porcentaje de daño recibido (como Smash) */
+            float porcentaje_danio{0.0f};
     };
 
     /**

@@ -2,6 +2,7 @@
 #include "MoverJugadores.hpp"
 #include "SaltarJugador.hpp"
 #include "CorrerJugador.hpp"
+#include "GolpearJugador.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
 
 namespace IVJ
@@ -20,6 +21,9 @@ namespace IVJ
             if (obj.tieneComponente<IGravedad>() && obj.getComponente<IGravedad>()->saltos_restantes > 0) {
                 return new SaltarJugador();
             }
+        }
+        if (control.acc) {
+            return new GolpearJugador(4, 0.1f); // 4 frames
         }
         //si presionamos cualquier dirección cambiarnos
         //al nodo de MoverJugadores(frames,frame_rate)

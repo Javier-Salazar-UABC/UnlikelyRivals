@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "Juego/Maquinas/Naves/IdleJugadores.hpp"
+#include "Juego/Maquinas/Naves/GolpearJugador.hpp"
 #include "Juego/Sistemas/Sistemas.hpp"
 #include "Motor/Camaras/CamarasGestor.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
@@ -40,6 +41,7 @@ namespace IVJ
         registrarBotones(sf::Keyboard::Scancode::LShift,"correr");
         registrarBotones(sf::Keyboard::Scancode::RShift,"correr");
         registrarBotones(sf::Keyboard::Scancode::Enter,"aceptar");
+        registrarBotones(sf::Keyboard::Scancode::J,"atacar");
 
         //cargar mapa 4 layers
         tiles_layers.push_back(TileMap()); //cielo
@@ -83,6 +85,12 @@ namespace IVJ
         CE::GestorAssets::Get().agregarTextura(
             "esnupi_idle",                                
             ASSETS "/sprites/esnupi_idle.png",   
+            CE::Vector2D{0.f,0.f},                  
+            CE::Vector2D{80.f,20.f});               // dimensiones
+
+        CE::GestorAssets::Get().agregarTextura(
+            "esnupi_punch",                                
+            ASSETS "/sprites/esnupi_punch.png",   
             CE::Vector2D{0.f,0.f},                  
             CE::Vector2D{80.f,20.f});               // dimensiones
 
@@ -131,6 +139,57 @@ namespace IVJ
             }
             SistemaColAABBMid(*player, *obj, true);
         }
+
+        // Lógica de golpe
+        auto maquina_estado = player->getComponente<IMaquinaEstado>();
+        if (maquina_estado && maquina_estado->fsm && maquina_estado->fsm->getNombre() == "GolpearJugador") {
+            auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
+            if (gj && gj->hitbox_activa && !gj->golpe_procesado) {
+                // Crear hitbox temporal frente al jugador
+                auto trans = player->getTransformada();
+                auto sprite = player->getComponente<CE::ISprite>();
+                float dir = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
+                
+                // Asumimos un alcance de 40 pixeles hacia adelante
+                CE::Vector2D pos_hitbox = trans->posicion;
+                pos_hitbox.x += dir * 40.0f;
+                
+                // Radio de hitbox para la colisión simple
+                float radio_hitbox = 30.0f;
+
+                for(auto& obj: objetos.getPool()) {
+                    if (obj->tieneComponente<CE::ITransform>()) {
+                        auto o_trans = obj->getTransformada();
+                        // Distancia simple (cuadrada o normal)
+                        float dx = o_trans->posicion.x - pos_hitbox.x;
+                        float dy = o_trans->posicion.y - pos_hitbox.y;
+                        float dist = std::sqrt(dx*dx + dy*dy);
+                        
+                        if (dist < radio_hitbox + 20.0f) { // asumiendo radio del objeto es 20
+                            // Colisión! Aplicar empuje
+                            if (obj->tieneComponente<CE::IStats>()) {
+                                obj->getStats()->porcentaje_danio += 10.0f; // Aumentar porcentaje
+                                
+                                // Empuje base * porcentaje
+                                float fuerza_empuje = 200.0f * (1.0f + (obj->getStats()->porcentaje_danio / 50.0f));
+                                
+                                // Aplicar fuerza hacia arriba y en la dirección del golpe
+                                o_trans->velocidad.x += dir * fuerza_empuje;
+                                
+                                if (obj->tieneComponente<IGravedad>()) {
+                                    obj->getComponente<IGravedad>()->velocidad_Y -= fuerza_empuje * 0.8f;
+                                    obj->getComponente<IGravedad>()->en_suelo = false;
+                                } else {
+                                    o_trans->velocidad.y -= fuerza_empuje * 0.8f;
+                                }
+                            }
+                            gj->golpe_procesado = true; // Solo golpear al primero o a todos en este frame
+                        }
+                    }
+                }
+                gj->golpe_procesado = true; // Ya verificamos en este frame
+            }
+        }
     }
     void Escena_Atlas::onInputs(const CE::Botones& accion)
     {
@@ -158,6 +217,10 @@ namespace IVJ
                 {
                     player->getComponente<CE::IControl>()->run=true;
                 }
+                if(accion.getNombre() == "atacar")
+                {
+                    player->getComponente<CE::IControl>()->acc=true;
+                }
                 break;
             }
             case CE::Botones::TipoAccion::OnRelease:
@@ -181,6 +244,10 @@ namespace IVJ
                 if(accion.getNombre() == "correr")
                 {
                     player->getComponente<CE::IControl>()->run=false;
+                }
+                if(accion.getNombre() == "atacar")
+                {
+                    player->getComponente<CE::IControl>()->acc=false;
                 }
                 break;
             }

@@ -1,12 +1,13 @@
 #pragma once
 #include "../FSM.hpp"
+
 namespace IVJ
 {
-    class SaltarJugador : public FSM
+    class GolpearJugador : public FSM
     {
     public:
-        explicit SaltarJugador(bool aplicar_fuerza = true);
-        ~SaltarJugador() override{};
+        GolpearJugador(int max_frames, float frame_rate);
+        ~GolpearJugador() override{};
         FSM* onInputs(const Entidad& obj, const CE::IControl& control)override;
         void onEntrar(const Entidad& obj)override;
         void onSalir(const Entidad& obj)override;
@@ -15,11 +16,12 @@ namespace IVJ
         sf::Sprite *sprite;
         int s_w;
         int s_h;
-        bool salto_soltado;
+        float max_tiempo;
         float act_tiempo;
+        int max_frames;
         int id_frame;
-        bool aterrizando;
-        float tiempo_aterrizaje;
-        bool aplicar_fuerza;
+    public:
+        bool hitbox_activa;
+        bool golpe_procesado; // Para asegurar que no golpea multiples veces por frame
     };
 }
