@@ -85,6 +85,8 @@ namespace IVJ
 
             entidad->setPosicion(posX, posY);
             entidad->getTransformada()->velocidad = CE::Vector2D{VELOCIDAD, VELOCIDAD};
+            entidad->getStats()->multiplicador_fuerza = 1.0f; // Fuerza normal
+
 
             auto sprite = std::make_shared<CE::ISprite>(
                 CE::GestorAssets::Get().getTextura("esnupi_walk"),

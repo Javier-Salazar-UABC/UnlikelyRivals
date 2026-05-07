@@ -18,7 +18,10 @@ namespace IVJ
             // TODO: shaders en tilemap
             bool loadTileMapShaders(const std::string& vert, const std::string& frag);
             CE::IShader *getTilemapShader() {return tilemap_shader.get();};
+            float getAnchoTotal() const { return (float)map_c * tile_w; }
+            float getAltoTotal() const { return (float)map_r * tile_h; }
         private:
+
             int atlas_w{};
             int atlas_h{};
             int tile_w{};

@@ -407,6 +407,9 @@ namespace IVJ
         CE::Vector2D centro_hitbox = trans->posicion;
         centro_hitbox.x += dir * (hitW + 5.f);
 
+        // Obtener multiplicador de fuerza del atacante
+        float mult_atacante = jugador->getStats()->multiplicador_fuerza;
+
         for (auto& obj : objetos.getPool())
         {
             if (obj == jugador) continue; // No golpearse a sí mismo
@@ -421,19 +424,20 @@ namespace IVJ
 
             if ((dX < hitW + midObj.x) && (dY < hitH + midObj.y))
             {
-                auto& stats = obj->getStats();
-                stats->porcentaje_danio += isKick ? 15.0f : 10.0f;
-                stats->hit_count++;
+                auto& stats_victima = obj->getStats();
+                float danio_base = isKick ? 15.0f : 10.0f;
+                stats_victima->porcentaje_danio += danio_base * mult_atacante;
+                stats_victima->hit_count++;
 
                 float fuerza_base_H = isKick ? 200.0f : 100.0f; 
                 float fuerza_base_V = isKick ? 200.0f : 150.0f;
                 
-                float multiplicador_smash = (1.0f + (stats->porcentaje_danio / 100.0f));
+                float multiplicador_smash = (1.0f + (stats_victima->porcentaje_danio / 100.0f));
 
-                obj->getTransformada()->velocidad.x = dir * fuerza_base_H * multiplicador_smash;
+                obj->getTransformada()->velocidad.x = dir * fuerza_base_H * multiplicador_smash * mult_atacante;
                 auto grav = obj->getComponente<IGravedad>();
                 if (grav) {
-                    grav->velocidad_Y = -fuerza_base_V * multiplicador_smash;
+                    grav->velocidad_Y = -fuerza_base_V * multiplicador_smash * mult_atacante;
                     grav->en_suelo = false;
                 }
 

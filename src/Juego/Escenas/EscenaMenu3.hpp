@@ -18,7 +18,7 @@ namespace IVJ
         void onInputs(const CE::Botones& accion) override;
         void onRender() override;
         
-        enum class MenuState { MAIN, SETTINGS, GALLERY };
+        enum class MenuState { MAIN, SETTINGS, CHAR_SELECT };
 
     private:
         struct Particle {
@@ -38,13 +38,16 @@ namespace IVJ
         void createJaggedBox(sf::ConvexShape& shape, sf::Vector2f size, float skew);
         void setupBackground();
         void setupMenu();
+        void setupCharacterSelect();
         void setupDecorations();
 
         bool inicializar{true};
         MenuState currentState{MenuState::MAIN};
         int selectedIndex{0};
+        int selectionStep{0}; // 0 = P1, 1 = P2
         std::vector<MenuItem> mainItems;
         std::vector<MenuItem> settingsItems;
+        std::vector<MenuItem> characterItems;
         
         std::vector<MenuItem>* currentItems;
         
@@ -61,7 +64,11 @@ namespace IVJ
         float timer{0.0f};
         float animTimer{0.0f};
         float joyTimer{0.0f};
+        float silhouetteScale{1.0f};
+        float silhouetteTargetScale{1.0f};
+        int lastCharIndex{-1};
         int currentFrame{0};
+        int frameW{20}, frameH{20};
         const int TOTAL_FRAMES = 4;
         const float FRAME_TIME = 0.15f;
         const sf::Color P5_RED = sf::Color(211, 0, 0);

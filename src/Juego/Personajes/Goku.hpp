@@ -1,6 +1,6 @@
 /**
- * @file MasterChief.hpp
- * @brief Preset del personaje "Master Chief" (Jeilo).
+ * @file Goku.hpp
+ * @brief Preset del personaje "Goku".
  */
 #pragma once
 
@@ -13,23 +13,22 @@
 
 namespace IVJ
 {
-    struct MasterChief
+    struct Goku
     {
         // ─── Constantes del personaje ───────────────────────────────────────
-        static constexpr float VELOCIDAD    = 100.f;  
+        static constexpr float VELOCIDAD    = 180.f;  // Goku es muy rápido
         static constexpr float GRAVEDAD     = 1200.f; 
-        static constexpr float SALTO        = 550.f;  
-        static constexpr float ESCALA       = 2.2f;   
+        static constexpr float SALTO        = 700.f;  // Salta muy alto
+        static constexpr float ESCALA       = 2.2f;   // Igual que Master Chief
         static constexpr int   FRAME_W      = 16;     
         static constexpr int   FRAME_H      = 32;     
 
+
         // ─── Rutas de sprites ───────────────────────────────────────────────
-        static constexpr const char* SPR_WALK  = ASSETS "/sprites/jeilo_walk.png";
-        // Por ahora reutilizamos walk para otras animaciones si no hay más
-        static constexpr const char* SPR_IDLE  = ASSETS "/sprites/jeilo_walk.png";
+        static constexpr const char* SPR_WALK  = ASSETS "/sprites/goku_walk.png";
 
         // ─── Frame counts ───────────────────────────────────────────────────
-        static constexpr int FRAMES_WALK  = 4;
+        static constexpr int FRAMES_WALK  = 4; // Ajustar según el PNG real
         static constexpr int FRAMES_IDLE  = 1;
 
         /**
@@ -40,35 +39,36 @@ namespace IVJ
             auto& assets = CE::GestorAssets::Get();
             using V2 = CE::Vector2D;
 
-            assets.agregarTextura("jeilo_walk", SPR_WALK, V2{0,0}, V2{(float)(FRAME_W * FRAMES_WALK), (float)FRAME_H});
-            assets.agregarTextura("jeilo_idle", SPR_IDLE, V2{0,0}, V2{(float)(FRAME_W * FRAMES_IDLE), (float)FRAME_H});
+            // Por ahora solo tenemos goku_walk, lo usamos para todo
+            assets.agregarTextura("goku_walk", SPR_WALK, V2{0,0}, V2{(float)(FRAME_W * FRAMES_WALK), (float)FRAME_H});
         }
 
         /**
-         * @brief Configura todos los componentes del Master Chief.
+         * @brief Configura todos los componentes de Goku.
          */
-        static void cargar(std::shared_ptr<Entidad>& entidad, float posX = 420.f, float posY = 300.f)
+        static void cargar(std::shared_ptr<Entidad>& entidad, float posX = 300.f, float posY = 300.f)
         {
             registrarAssets();
 
             entidad->setPosicion(posX, posY);
             entidad->getTransformada()->velocidad = CE::Vector2D{VELOCIDAD, VELOCIDAD};
-            entidad->getStats()->multiplicador_fuerza = 1.5f; // ¡Es un Spartan!
-
+            
+            // Goku es el más fuerte de todos
+            entidad->getStats()->multiplicador_fuerza = 2.5f; 
 
             auto sprite = std::make_shared<CE::ISprite>(
-                CE::GestorAssets::Get().getTextura("jeilo_walk"),
+                CE::GestorAssets::Get().getTextura("goku_walk"),
                 FRAME_W, FRAME_H,
                 ESCALA);
 
-            // Mapa de animaciones: claves propias de Jeilo (reutiliza walk donde no hay sprite propio)
+            // Mapa de animaciones (usamos goku_walk para todo por ahora)
             auto anim = std::make_shared<IAnimaciones>();
-            anim->set("idle",  "jeilo_walk");
-            anim->set("walk",  "jeilo_walk");
-            anim->set("run",   "jeilo_walk");  // Sin sprite de correr: usa walk
-            anim->set("jump",  "jeilo_walk");  // Sin sprite de salto: usa walk
-            anim->set("punch", "jeilo_walk");  // Sin sprite de golpe: usa walk
-            anim->set("kick",  "jeilo_walk");  // Sin sprite de patada: usa walk
+            anim->set("idle",  "goku_walk");
+            anim->set("walk",  "goku_walk");
+            anim->set("run",   "goku_walk");
+            anim->set("jump",  "goku_walk");
+            anim->set("punch", "goku_walk");
+            anim->set("kick",  "goku_walk");
 
             entidad->addComponente(std::make_shared<CE::IControl>());
             entidad->addComponente(std::make_shared<CE::IBoundingBox>(

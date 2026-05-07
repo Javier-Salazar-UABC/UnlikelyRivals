@@ -290,6 +290,43 @@ namespace CE
         ));
 
         // Aplicar posición al view
-        m_view->setCenter({ m_transform->posicion.x, m_transform->posicion.y });
+        sf::Vector2f finalCenter = { m_transform->posicion.x, m_transform->posicion.y };
+
+        // --- LIMITAR CÁMARA AL ATLAS ---
+        if (m_useBounds) {
+            sf::Vector2f viewSize = m_view->getSize();
+            
+            // Limitar Zoom máximo para que no sea más grande que el mapa
+            if (viewSize.x > m_worldBounds.size.x) {
+                viewSize.x = m_worldBounds.size.x;
+                viewSize.y = viewSize.x * (m_baseDim.y / m_baseDim.x);
+                m_view->setSize(viewSize);
+            }
+            if (viewSize.y > m_worldBounds.size.y) {
+                viewSize.y = m_worldBounds.size.y;
+                viewSize.x = viewSize.y * (m_baseDim.x / m_baseDim.y);
+                m_view->setSize(viewSize);
+            }
+
+            float halfW = viewSize.x / 2.0f;
+            float halfH = viewSize.y / 2.0f;
+
+            // Clampear centro
+            float minX = m_worldBounds.position.x + halfW;
+            float maxX = m_worldBounds.position.x + m_worldBounds.size.x - halfW;
+            float minY = m_worldBounds.position.y + halfH;
+            float maxY = m_worldBounds.position.y + m_worldBounds.size.y - halfH;
+
+            // Si el mapa es más pequeño que la cámara (raro pero posible), centramos
+            if (minX > maxX) finalCenter.x = m_worldBounds.position.x + m_worldBounds.size.x / 2.0f;
+            else finalCenter.x = std::max(minX, std::min(finalCenter.x, maxX));
+
+            if (minY > maxY) finalCenter.y = m_worldBounds.position.y + m_worldBounds.size.y / 2.0f;
+            else finalCenter.y = std::max(minY, std::min(finalCenter.y, maxY));
+        }
+
+
+        m_view->setCenter(finalCenter);
+        m_transform->posicion = { finalCenter.x, finalCenter.y };
     }
 }

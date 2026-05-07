@@ -14,6 +14,9 @@
 #include "Motor/Primitivos/GestorAssets.hpp"
 #include "Juego/Personajes/Snoopy.hpp"
 #include "Juego/Personajes/MasterChief.hpp"
+#include "Juego/Personajes/Goku.hpp"
+#include "Juego/Globales.hpp"
+
 
 namespace IVJ
 {
@@ -87,28 +90,49 @@ namespace IVJ
         if(!tiles_layers[3].loadTileMap(ASSETS "/mapas/tileset_layer1.txt", objetos))
             exit(EXIT_FAILURE);
 
+        // --- Configurar límites de la cámara ---
+        float worldW = tiles_layers[3].getAnchoTotal();
+        float worldH = tiles_layers[3].getAltoTotal();
+        
+        auto& camActiva = CE::GestorCamaras::Get().getCamaraActiva();
+        if (auto* smash = dynamic_cast<CE::CamaraSmash*>(&camActiva)) {
+            smash->setWorldBounds(sf::FloatRect({0, 0}, {worldW, worldH}));
+        }
+
         auto terreno = std::make_shared<Entidad>();
+
         terreno->getStats()->hp_max=100;
         terreno->getStats()->hp=100;
         terreno->getStats()->def=150;
 
 
-        // --- Cargar jugador 1 (Snoopy) ---
-        Snoopy::cargar(player, 300.f, 300.f);
+        // --- Cargar jugador 1 según selección ---
+        auto loadPlayer = [&](std::shared_ptr<Entidad>& ent, PersonajeID id, float x, float y) {
+            switch(id) {
+                case PersonajeID::SNOOPY:       Snoopy::cargar(ent, x, y); break;
+                case PersonajeID::MASTER_CHIEF: MasterChief::cargar(ent, x, y); break;
+                case PersonajeID::GOKU:         Goku::cargar(ent, x, y); break;
+            }
+        };
 
-        // --- Cargar jugador 2 (Master Chief) ---
+        loadPlayer(player, Globales::p1_seleccionado, 300.f, 300.f);
+
+        // --- Cargar jugador 2 según selección ---
         p2 = std::make_shared<Entidad>();
-        MasterChief::cargar(p2, 420.f, 300.f);
+        loadPlayer(p2, Globales::p2_seleccionado, 420.f, 300.f);
         p2->getStats()->porcentaje_danio = 0.f;
 
         objetos.agregarPool(player);
         objetos.agregarPool(p2);
 
-        // Agregar a la cámara smash si es necesario (ya se hace en el dynamic_cast arriba pero por si acaso)
-        auto& camActiva = CE::GestorCamaras::Get().getCamaraActiva();
+        // Agregar a la cámara smash si es necesario
         if (auto* s = dynamic_cast<CE::CamaraSmash*>(&camActiva)) {
+
+            s->limpiarTargets();
+            s->agregarTarget(player);
             s->agregarTarget(p2);
         }
+
         // --------------------------------------------------------
 
         inicializar=false;

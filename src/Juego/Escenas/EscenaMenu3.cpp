@@ -3,6 +3,8 @@
 #include <Motor/Render/Render.hpp>
 #include <Motor/Primitivos/GestorAssets.hpp>
 #include <cmath>
+#include "../Globales.hpp"
+
 
 namespace IVJ
 {
@@ -22,10 +24,15 @@ namespace IVJ
 
         CE::GestorAssets::Get().agregarFont("p5_font", ASSETS "/fonts/Electrolize.ttf");
         CE::GestorAssets::Get().agregarTextura("p5_player", ASSETS "/sprites/esnupi_walk.png", {0, 0}, {0, 0});
+        CE::GestorAssets::Get().agregarTextura("p5_jeilo",  ASSETS "/sprites/jeilo_walk.png", {0, 0}, {0, 0});
+        CE::GestorAssets::Get().agregarTextura("p5_goku",   ASSETS "/sprites/goku_walk.png", {0, 0}, {0, 0});
+
 
         setupBackground();
         setupDecorations();
         setupMenu();
+        setupCharacterSelect();
+
 
         currentItems = &mainItems;
 
@@ -188,6 +195,25 @@ namespace IVJ
         }
     }
 
+    void EscenaMenu3::setupCharacterSelect()
+    {
+        sf::Font& font = CE::GestorAssets::Get().getFont("p5_font");
+        std::vector<std::string> chars = {"SNOOPY", "MASTER CHIEF", "GOKU", "CANCEL"};
+        
+        for(size_t i=0; i<chars.size(); ++i) {
+            MenuItem item;
+            item.text = chars[i];
+            item.sfText = std::make_unique<sf::Text>(font);
+            item.sfText->setString(item.text);
+            item.sfText->setCharacterSize(45);
+            item.sfText->setStyle(sf::Text::Bold);
+            createJaggedBox(item.box, {400, 70}, 30);
+            item.rotation = -5.0f + (static_cast<float>(rand() % 10));
+            item.box.setPosition({-600, 200}); 
+            characterItems.push_back(std::move(item));
+        }
+    }
+
     void EscenaMenu3::updatePositions()
     {
         float startY = 150.0f;
@@ -216,7 +242,20 @@ namespace IVJ
                 settingsItems[i].targetPos = {1500.0f, startY + i * spacing}; // Deslizarse hacia la derecha
             }
         }
+
+        // Posiciones de los items de Personajes
+        for(size_t i=0; i<characterItems.size(); ++i) {
+            if (currentState == MenuState::CHAR_SELECT) {
+                float targetX = (i == (size_t)selectedIndex) ? 150.0f : 100.0f;
+                characterItems[i].targetPos = {targetX, startY + i * spacing};
+                characterItems[i].box.setFillColor((i == (size_t)selectedIndex) ? sf::Color::White : P5_RED);
+                if (characterItems[i].sfText) characterItems[i].sfText->setFillColor((i == (size_t)selectedIndex) ? P5_BLACK : sf::Color::White);
+            } else {
+                characterItems[i].targetPos = {-700.0f, startY + i * spacing};
+            }
+        }
     }
+
 
     void EscenaMenu3::onUpdate(float dt)
     {
@@ -241,6 +280,8 @@ namespace IVJ
 
         animateItems(mainItems);
         animateItems(settingsItems);
+        animateItems(characterItems);
+
 
         // --- Background Dynamimco ---
         
@@ -271,20 +312,62 @@ namespace IVJ
             if (pos.y > 770) p.shape.setPosition({pos.x, -50});
         }
 
-        // --- Animacion de Snupi ---
+        // --- Animacion de Silueta (Dinámica) ---
         if (silhouette) {
+            // Cambio de personaje en hover
+            if (currentState == MenuState::CHAR_SELECT && selectedIndex != lastCharIndex && selectedIndex < 3) {
+                lastCharIndex = selectedIndex;
+                
+                // Efecto Slide: lo movemos fuera de pantalla a la derecha
+                // el lerp de abajo lo traerá de vuelta suavemente
+                silhouette->setPosition({1200.0f, 400.0f});
+                
+                if (selectedIndex == 0) { // Snoopy
+                    silhouette->setTexture(CE::GestorAssets::Get().getTextura("p5_player"));
+                    frameW = 20; frameH = 20;
+                } else if (selectedIndex == 1) { // Master Chief
+                    silhouette->setTexture(CE::GestorAssets::Get().getTextura("p5_jeilo"));
+                    frameW = 16; frameH = 32;
+                } else if (selectedIndex == 2) { // Goku
+                    silhouette->setTexture(CE::GestorAssets::Get().getTextura("p5_goku"));
+                    frameW = 16; frameH = 32;
+                }
+                silhouette->setTextureRect(sf::IntRect({0, 0}, {frameW, frameH}));
+                silhouette->setOrigin({(float)frameW/2.0f, (float)frameH/2.0f});
+            } else if (currentState != MenuState::CHAR_SELECT && lastCharIndex != -2) {
+                // Reset a Snoopy si salimos de selección
+                lastCharIndex = -2;
+                silhouette->setTexture(CE::GestorAssets::Get().getTextura("p5_player"));
+                frameW = 20; frameH = 20;
+                silhouette->setTextureRect(sf::IntRect({0, 0}, {frameW, frameH}));
+                silhouette->setOrigin({10.0f, 10.0f});
+            }
+
+            // Animación de frames
             animTimer += dt;
             if (animTimer >= FRAME_TIME) {
                 animTimer = 0.0f;
                 currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
-                silhouette->setTextureRect(sf::IntRect({currentFrame * 20, 0}, {20, 20}));
+                silhouette->setTextureRect(sf::IntRect({currentFrame * frameW, 0}, {frameW, frameH}));
             }
             
-            float hover = std::sin(timer * 1.0f) * 15.0f;
-            float shiftX = (currentState == MenuState::MAIN) ? 0.0f : -200.0f;
+            // Proporciones visuales
+            float finalScale = 30.0f;
+            if (frameH > 20) finalScale = 20.0f; 
+
+            float hover = std::sin(timer * 1.5f) * 10.0f;
+            float tilt = std::sin(timer * 2.0f) * 2.0f;
+            float shiftX = (currentState == MenuState::MAIN) ? 0.0f : -150.0f;
+            
             sf::Vector2f currentPos = silhouette->getPosition();
-            silhouette->setPosition({currentPos.x + (900.0f + shiftX - currentPos.x) * 4.0f * dt, 400.0f + hover});
+            // Deslizamiento suave (Lerp)
+            float targetX = 900.0f + shiftX;
+            silhouette->setPosition({currentPos.x + (targetX - currentPos.x) * 8.0f * dt, 400.0f + hover});
+            silhouette->setScale({finalScale, finalScale});
+            silhouette->setRotation(sf::degrees(-10.0f + tilt));
         }
+
+
 
         // --- Actualizar Shader ---
         crepuscularShader.setUniform("time", timer);
@@ -307,7 +390,12 @@ namespace IVJ
                 
                 if (currentState == MenuState::MAIN) {
                     if (selected.text == "PLAY") {
-                        CE::GestorEscenas::Get().cambiarEscena("EAtlas");
+                        currentState = MenuState::CHAR_SELECT;
+                        currentItems = &characterItems;
+                        selectedIndex = 0;
+                        selectionStep = 0; // Reset a selección P1
+                        if (titleText) titleText->setString("SELECT P1");
+                        updatePositions();
                     } else if (selected.text == "LOAD GAME") {
                         CE::GestorEscenas::Get().cambiarEscena("EAtlas");
                     } else if (selected.text == "CONFIG") {
@@ -318,7 +406,32 @@ namespace IVJ
                     } else if (selected.text == "LEAVE") {
                         CE::Render::Get().GetVentana().close();
                     }
+                } else if (currentState == MenuState::CHAR_SELECT) {
+                    if (selected.text == "CANCEL") {
+                        currentState = MenuState::MAIN;
+                        currentItems = &mainItems;
+                        selectedIndex = 0;
+                        if (titleText) titleText->setString("UNLIKELY RIVALS");
+                        updatePositions();
+                    } else {
+                        // Mapeo de selección
+                        PersonajeID id = PersonajeID::SNOOPY;
+                        if (selected.text == "MASTER CHIEF") id = PersonajeID::MASTER_CHIEF;
+                        if (selected.text == "GOKU") id = PersonajeID::GOKU;
+
+                        if (selectionStep == 0) {
+                            Globales::p1_seleccionado = id;
+                            selectionStep = 1;
+                            selectedIndex = 0;
+                            if (titleText) titleText->setString("SELECT P2");
+                            updatePositions();
+                        } else {
+                            Globales::p2_seleccionado = id;
+                            CE::GestorEscenas::Get().cambiarEscena("EAtlas");
+                        }
+                    }
                 } else if (currentState == MenuState::SETTINGS) {
+
                     if (selected.text == "BACK") {
                         currentState = MenuState::MAIN;
                         currentItems = &mainItems;
@@ -411,6 +524,11 @@ namespace IVJ
             CE::Render::Get().AddToDraw(item.box);
             if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
         }
+        for(auto& item : characterItems) {
+            CE::Render::Get().AddToDraw(item.box);
+            if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
+        }
+
 
         if (titleText) CE::Render::Get().AddToDraw(*titleText);
     }

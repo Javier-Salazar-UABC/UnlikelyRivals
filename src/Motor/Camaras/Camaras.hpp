@@ -222,6 +222,7 @@ namespace CE
         void onUpdate(float dt) override;
         void agregarTarget(const std::shared_ptr<Objeto>& obj);
         void limpiarTargets();
+        void setWorldBounds(const sf::FloatRect& bounds) { m_worldBounds = bounds; m_useBounds = true; }
 
     private:
         std::vector<std::weak_ptr<Objeto>> m_targets;
@@ -229,5 +230,7 @@ namespace CE
         float m_maxZoom = 2.0f;
         float m_margin = 200.0f;
         Vector2D m_baseDim;
+        sf::FloatRect m_worldBounds;
+        bool m_useBounds = false;
     };
 }
