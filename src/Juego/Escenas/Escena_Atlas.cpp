@@ -26,11 +26,8 @@ namespace IVJ
     }
     void Escena_Atlas::onInit()
     {
-        if(inicializar) {
-            auto smashCam = std::make_shared<CE::CamaraSmash>(CE::Vector2D{512, 360}, CE::Vector2D{1024, 720});
-            CE::GestorCamaras::Get().agregarCamara(smashCam);
-            CE::GestorCamaras::Get().setCamaraActiva(CE::Camara::num_camaras - 1);
-        }
+        SistemaAudioInit();
+        CE::GestorCamaras::Get().setCamaraActiva(4);
         
         // La cámara activa debería ser la Smash ahora
         auto& cam = CE::GestorCamaras::Get().getCamaraActiva();
@@ -143,6 +140,39 @@ namespace IVJ
     }
     void Escena_Atlas::onUpdate(float dt)
     {
+        SistemaUpdateAudio(dt);
+
+        // --- SISTEMA IA (PVC MODE) ---
+        if (Globales::modo_juego == GameMode::PVC && p2) {
+            auto ctrl2 = p2->getComponente<CE::IControl>();
+            if (ctrl2) {
+                // Reset inputs
+                ctrl2->izq = ctrl2->der = ctrl2->arr = ctrl2->abj = ctrl2->acc = false;
+
+                auto pos1 = player->getTransformada()->posicion;
+                auto pos2 = p2->getTransformada()->posicion;
+                float dist = std::abs(pos1.x - pos2.x);
+                float distY = std::abs(pos1.y - pos2.y);
+
+                // Movimiento horizontal
+                if (dist > 40.0f) {
+                    if (pos1.x < pos2.x) ctrl2->izq = true;
+                    else ctrl2->der = true;
+                }
+
+                // Ataque
+                if (dist < 60.0f && distY < 40.0f) {
+                    ctrl2->acc = true;
+                }
+
+                // Recuperación si está en el aire
+                auto grav = p2->getComponente<IGravedad>();
+                if (grav && !grav->en_suelo) {
+                    if (grav->velocidad_Y > 0) ctrl2->arr = true; // Saltar si está cayendo
+                }
+            }
+        }
+
         // Primera pasada: actualizar todos los objetos
         for(auto& obj: objetos.getPool())
         {
@@ -201,6 +231,8 @@ namespace IVJ
         std::shared_ptr<Entidad> target = player;
         if (accion.getSource() == CE::Botones::InputSource::JoystickButton || 
             accion.getSource() == CE::Botones::InputSource::JoystickAxis) {
+            // En modo PVC, el joystick NO controla a P2 (la IA lo hace)
+            if (Globales::modo_juego == GameMode::PVC) return;
             target = p2;
         }
 

@@ -37,16 +37,29 @@ namespace IVJ
     }
     void IdleJugadores::onEntrar(const Entidad& obj)
     {
-        sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
-        s_w = obj.getComponente<CE::ISprite>()->width;
-        s_h = obj.getComponente<CE::ISprite>()->height;
-        // Leer la clave de textura del componente IAnimaciones del personaje
-        const std::string& clave = obj.tieneComponente<IAnimaciones>()
-            ? obj.getComponente<IAnimaciones>()->get("idle", "esnupi_idle")
-            : "esnupi_idle";
-        sprite->setTexture(CE::GestorAssets::Get().getTextura(clave));
+        auto compSprite = obj.getComponente<CE::ISprite>();
+        sprite = &compSprite->m_sprite;
+        
+        // Leer la configuración del componente IAnimaciones
+        if (obj.tieneComponente<IAnimaciones>()) {
+            if (auto* data = obj.getComponente<IAnimaciones>()->get("idle")) {
+                sprite->setTexture(CE::GestorAssets::Get().getTextura(data->clave_textura));
+                max_frames = data->frames;
+                max_tiempo = data->frame_rate; // <-- NUEVO
+                if (data->width > 0)  compSprite->width = data->width;
+                if (data->height > 0) compSprite->height = data->height;
+            }
+        } else {
+            // Fallback
+            sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_idle"));
+            max_frames = 4;
+        }
 
-        id_frame=0;
+        s_w = compSprite->width;
+        s_h = compSprite->height;
+        sprite->setOrigin({s_w / 2.f, s_h / 2.f});
+        sprite->setTextureRect(sf::IntRect({0, 0}, {s_w, s_h}));
+        id_frame = 0;
     }
     void IdleJugadores::onSalir(const Entidad& obj)
     {

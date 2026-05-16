@@ -29,7 +29,7 @@ namespace CE
              * e incrementa el contador global de objetos.
              */
             explicit Objeto();
-            
+            Objeto(const Objeto &cpy);
             /** @brief Destructor virtual por defecto */
             virtual ~Objeto()=default;
 
@@ -66,6 +66,8 @@ namespace CE
                 componentes.push_back(copia);
                 return *this;
             }
+
+
             
             /**
              * @brief Obtiene un componente del objeto por tipo.

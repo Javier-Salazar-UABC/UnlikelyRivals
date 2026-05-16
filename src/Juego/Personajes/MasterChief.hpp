@@ -63,12 +63,13 @@ namespace IVJ
 
             // Mapa de animaciones: claves propias de Jeilo (reutiliza walk donde no hay sprite propio)
             auto anim = std::make_shared<IAnimaciones>();
-            anim->set("idle",  "jeilo_walk");
-            anim->set("walk",  "jeilo_walk");
-            anim->set("run",   "jeilo_walk");  // Sin sprite de correr: usa walk
-            anim->set("jump",  "jeilo_walk");  // Sin sprite de salto: usa walk
-            anim->set("punch", "jeilo_walk");  // Sin sprite de golpe: usa walk
-            anim->set("kick",  "jeilo_walk");  // Sin sprite de patada: usa walk
+            anim->set("idle",  "jeilo_walk", FRAMES_IDLE, 0.15f);
+            anim->set("walk",  "jeilo_walk", FRAMES_WALK, 0.1f);
+            anim->set("run",   "jeilo_walk", FRAMES_WALK, 0.08f);  // Sin sprite de correr: usa walk
+            anim->set("jump",  "jeilo_walk", FRAMES_WALK, 0.1f);   // Sin sprite de salto: usa walk
+            anim->set("punch", "jeilo_walk", FRAMES_WALK, 0.1f);   // Sin sprite de golpe: usa walk
+            anim->set("kick",  "jeilo_walk", FRAMES_WALK, 0.1f);   // Sin sprite de patada: usa walk
+            anim->set("hit",   "jeilo_walk", FRAMES_WALK, 0.1f);   // Hitstun
 
             entidad->addComponente(std::make_shared<CE::IControl>());
             entidad->addComponente(std::make_shared<CE::IBoundingBox>(

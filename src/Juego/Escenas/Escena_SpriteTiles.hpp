@@ -18,5 +18,6 @@ namespace IVJ
     private:
         int inicializar{1};
         std::shared_ptr<Entidad>& player;
+        std::shared_ptr<Entidad> obstaculo;
     };
 }

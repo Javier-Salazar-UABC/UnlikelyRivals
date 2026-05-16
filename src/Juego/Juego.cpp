@@ -81,6 +81,13 @@ namespace IVJ
                     CE::Vector2D{500/4,300/4} //ventana
                     )
                 );
+
+        CE::GestorCamaras::Get().agregarCamara(
+                std::make_shared<CE::CamaraSmash>(
+                CE::Vector2D{512, 360}, //posicion
+                CE::Vector2D{1024, 720} //dimensiones
+                    )
+                );
         
     }
     

@@ -17,7 +17,7 @@ if(WIN32)
         SFML
         URL "https://github.com/SFML/SFML/archive/refs/heads/3.0.x.zip"
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-    set(SFML_BUILD_AUDIO OFF CACHE BOOL "" FORCE)
+    set(SFML_BUILD_AUDIO ON CACHE BOOL "" FORCE)
     set(SFML_BUILD_NETWORK OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(SFML)
 else()
@@ -57,7 +57,7 @@ add_subdirectory(src)
 #ligar las librerias
 target_link_libraries(
     ${PROJECT_NAME}
-    SFML::System SFML::Window SFML::Graphics
+    SFML::System SFML::Window SFML::Graphics SFML::Audio
     ImGui-SFML::ImGui-SFML
 )
 #asignar el estandar

@@ -52,4 +52,11 @@ namespace IVJ
     [[maybe_unused]] void SistemaMuerteBlastZone(const std::vector<std::shared_ptr<CE::Objeto>>& entes, sf::Vector2f centro, float radio, float dt);
     [[maybe_unused]] void SistemaUpdateParticulasMuerte(float dt);
     [[maybe_unused]] void SistemaDibujarParticulasMuerte();
+
+    void SistemaMoverBalas(const std::shared_ptr<CE::Objeto> &ente, float dt);
+
+    // Audio System
+    void SistemaAudioInit();
+    void SistemaUpdateAudio(float dt);
+    void ReproducirSonidoAleatorio(const std::string& prefijo, int max_index, bool es_gore = false);
 }

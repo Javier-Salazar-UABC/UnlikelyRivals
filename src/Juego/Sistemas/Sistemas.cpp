@@ -11,9 +11,13 @@
 #include "../../Motor/Render/Render.hpp"
 #include "../../Motor/Primitivos/GestorColisiones.hpp"
 #include "Motor/Camaras/CamarasGestor.hpp"
-#include "Juego/Maquinas/Naves/GolpearJugador.hpp"
 #include "Juego/Maquinas/Naves/PatearJugador.hpp"
+#include "Juego/Maquinas/Naves/RecibirGolpe.hpp"
+#include "Motor/Primitivos/GestorAssets.hpp"
 #include <memory>
+#include <vector>
+#include <string>
+#include <algorithm>
 
 
 namespace IVJ
@@ -114,15 +118,31 @@ namespace IVJ
 
         if(hay_colision && resolucion) {
             if (penX < penY) {
-                pa->x = prevA.x;
+                // Resolución Lateral
+                if (pa->x < pb.x) pa->x -= (penX + 0.01f);
+                else pa->x += (penX + 0.01f);
+                A.getTransformada()->velocidad.x = 0;
             } else {
-                if (A.tieneComponente<IGravedad>() && pa->y > prevA.y) {
-                    auto grav = A.getComponente<IGravedad>();
-                    grav->velocidad_Y = 0.0f;
-                    grav->en_suelo = true;
-                    grav->saltos_restantes = 2;
+                // Resolución Vertical
+                if (pa->y < pb.y) {
+                    // Suelo
+                    pa->y -= (penY + 0.01f);
+                    if (A.tieneComponente<IGravedad>()) {
+                        auto grav = A.getComponente<IGravedad>();
+                        if (grav->velocidad_Y >= 0) {
+                            grav->velocidad_Y = 0.0f;
+                            grav->en_suelo = true;
+                            grav->saltos_restantes = 2;
+                        }
+                    }
+                } else {
+                    // Techo
+                    pa->y += (penY + 0.01f);
+                    if (A.tieneComponente<IGravedad>()) {
+                        auto grav = A.getComponente<IGravedad>();
+                        if (grav->velocidad_Y < 0) grav->velocidad_Y = 0.0f;
+                    }
                 }
-                pa->y = prevA.y;
             }
         }
         return hay_colision;
@@ -155,15 +175,31 @@ namespace IVJ
         
         if (resolucion && hay_colision) {
             if (penX < penY) { 
-                pa->x = prevA.x;
+                // Resolución Lateral
+                if (pa->x < pb->x) pa->x -= (penX + 0.01f);
+                else pa->x += (penX + 0.01f);
+                A.getTransformada()->velocidad.x = 0;
             } else { 
-                if (A.tieneComponente<IGravedad>() && pa->y > prevA.y) {
-                    auto grav = A.getComponente<IGravedad>();
-                    grav->velocidad_Y = 0.0f;
-                    grav->en_suelo = true;
-                    grav->saltos_restantes = 2;
+                // Resolución Vertical
+                if (pa->y < pb->y) {
+                    // Suelo
+                    pa->y -= (penY + 0.01f);
+                    if (A.tieneComponente<IGravedad>()) {
+                        auto grav = A.getComponente<IGravedad>();
+                        if (grav->velocidad_Y >= 0) {
+                            grav->velocidad_Y = 0.0f;
+                            grav->en_suelo = true;
+                            grav->saltos_restantes = 2;
+                        }
+                    }
+                } else {
+                    // Techo
+                    pa->y += (penY + 0.01f);
+                    if (A.tieneComponente<IGravedad>()) {
+                        auto grav = A.getComponente<IGravedad>();
+                        if (grav->velocidad_Y < 0) grav->velocidad_Y = 0.0f;
+                    }
                 }
-                pa->y = prevA.y;
             }
         }
         return hay_colision;
@@ -356,7 +392,16 @@ namespace IVJ
 
         gravedad->en_suelo = false;
 
-        gravedad->velocidad_Y += gravedad->fuerza * dt;
+        float fuerza_actual = gravedad->fuerza;
+        
+        // Reducir gravedad durante el hitstun para un efecto más "flotante"
+        if (objeto->tieneComponente<CE::IStats>()) {
+            if (objeto->getComponente<CE::IStats>()->hitstun_timer > 0) {
+                fuerza_actual *= 0.5f; // Mitad de gravedad
+            }
+        }
+
+        gravedad->velocidad_Y += fuerza_actual * dt;
         if (gravedad->velocidad_Y > gravedad->max_vel)
         {
             gravedad->velocidad_Y = gravedad->max_vel;
@@ -425,24 +470,53 @@ namespace IVJ
             if ((dX < hitW + midObj.x) && (dY < hitH + midObj.y))
             {
                 auto& stats_victima = obj->getStats();
-                float danio_base = isKick ? 15.0f : 10.0f;
+                float danio_base = isKick ? 5.0f : 1.2f; // Daño mucho más reducido
                 stats_victima->porcentaje_danio += danio_base * mult_atacante;
                 stats_victima->hit_count++;
 
-                float fuerza_base_H = isKick ? 200.0f : 100.0f; 
-                float fuerza_base_V = isKick ? 200.0f : 150.0f;
+                // Reproducir sonido de golpe (aleatorio entre melee y melee_gore)
+                if ((rand() % 100) < 30) {
+                    ReproducirSonidoAleatorio("melee", 6, true); // Gore
+                } else {
+                    ReproducirSonidoAleatorio("melee", 11, false); // Normal
+                }
+
+                float fuerza_base_H = isKick ? 400.0f : 30.0f; 
+                float fuerza_base_V = isKick ? 150.0f : 40.0f;
                 
                 float multiplicador_smash = (1.0f + (stats_victima->porcentaje_danio / 100.0f));
 
                 obj->getTransformada()->velocidad.x = dir * fuerza_base_H * multiplicador_smash * mult_atacante;
+                
                 auto grav = obj->getComponente<IGravedad>();
                 if (grav) {
                     grav->velocidad_Y = -fuerza_base_V * multiplicador_smash * mult_atacante;
                     grav->en_suelo = false;
                 }
 
+                // --- SISTEMA DE HITSTUN (SMASH BROS STYLE) ---
+                // Multiplicador equilibrado (0.12f)
+                float hitstun_segundos = (danio_base * 0.12f) * multiplicador_smash;
+                if (hitstun_segundos < 0.4f) hitstun_segundos = 0.4f;
+                if (hitstun_segundos > 5.0f) hitstun_segundos = 5.0f;
+
+                stats_victima->hitstun_timer = hitstun_segundos;
+                
+                // Umbral más bajo para el sonido de caída (antes 1.5s, ahora 1.0s)
+                if (hitstun_segundos > 1.3f) {
+                    ReproducirSonidoAleatorio("falling", 5, false); 
+                }
+                
+                // Forzar al personaje a entrar en estado de RecibirGolpe
+                auto victim_ent = std::dynamic_pointer_cast<Entidad>(obj);
+                if (victim_ent) {
+                    victim_ent->setFSM(std::make_shared<RecibirGolpe>());
+                }
+
                 if (isPunch) dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get())->golpe_procesado = true;
                 else dynamic_cast<PatearJugador*>(maquina_estado->fsm.get())->golpe_procesado = true;
+                
+                break; // Solo golpear a un enemigo por frame para evitar sonidos duplicados
             }
         }
     }
@@ -821,6 +895,96 @@ namespace IVJ
         }
         
         SistemaUpdateParticulasMuerte(dt);
+    }
+
+    void SistemaMoverBalas(const std::shared_ptr<CE::Objeto> &ente, float dt)
+    {
+        auto trans = ente->getTransformada();
+        auto vel = ente->getTransformada()->velocidad;
+        trans->posicion.suma(vel.escala(dt));
+    }
+
+    // --- AUDIO SYSTEM IMPLEMENTATION ---
+    
+    struct SonidoActivo {
+        sf::Sound* sound;
+        float max_duration;
+    };
+    static std::vector<SonidoActivo> sonidos_activos;
+
+    void SistemaAudioInit()
+    {
+        auto& assets = CE::GestorAssets::Get();
+        
+        // Cargar Swings (1-5)
+        for (int i = 1; i <= 5; ++i) {
+            std::string path = ASSETS "/sonidos/Swing/FGHTClth_Anime Swing " + std::to_string(i) + ".wav";
+            assets.agregarSonido("swing_" + std::to_string(i), path);
+        }
+
+        // Cargar Melee (1-11)
+        for (int i = 1; i <= 11; ++i) {
+            std::string path = ASSETS "/sonidos/Melee/FGHTImpt_Anime Melee " + std::to_string(i) + ".wav";
+            assets.agregarSonido("melee_" + std::to_string(i), path);
+        }
+
+        // Cargar Melee Gore (1-6)
+        for (int i = 1; i <= 6; ++i) {
+            std::string path = ASSETS "/sonidos/Melee/FGHTImpt_Anime Melee Gore " + std::to_string(i) + ".wav";
+            assets.agregarSonido("melee_gore_" + std::to_string(i), path);
+        }
+
+        // Cargar Falling (1-5)
+        for (int i = 1; i <= 5; ++i) {
+            std::string path = ASSETS "/sonidos/falling/TOONWhis_Anime Falling " + std::to_string(i) + ".wav";
+            assets.agregarSonido("falling_" + std::to_string(i), path);
+        }
+
+        // Cargar Jump (1-5)
+        for (int i = 1; i <= 5; ++i) {
+            std::string path = ASSETS "/sonidos/jump/FGHTMisc_Anime Jump " + std::to_string(i) + ".wav";
+            assets.agregarSonido("jump_" + std::to_string(i), path);
+        }
+    }
+
+    void SistemaUpdateAudio(float dt)
+    {
+        (void)dt;
+        for (auto it = sonidos_activos.begin(); it != sonidos_activos.end(); ) {
+            if (it->sound->getStatus() == sf::SoundSource::Status::Stopped) {
+                it = sonidos_activos.erase(it);
+            } else if (it->sound->getPlayingOffset().asSeconds() >= it->max_duration) {
+                it->sound->stop();
+                it = sonidos_activos.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    void ReproducirSonidoAleatorio(const std::string& prefijo, int max_index, bool es_gore)
+    {
+        int r = (rand() % max_index) + 1;
+        std::string key = prefijo + (es_gore ? "_gore_" : "_") + std::to_string(r);
+        
+        sf::Sound& s = CE::GestorAssets::Get().getSonido(key);
+        s.setPlayingOffset(sf::seconds(0));
+        s.play();
+        
+        float limit = (prefijo == "falling") ? 2.0f : 1.0f;
+
+        // Registrar o actualizar para monitorear el limite
+        bool encontrado = false;
+        for (auto& sa : sonidos_activos) {
+            if (sa.sound == &s) {
+                sa.max_duration = limit;
+                encontrado = true;
+                break;
+            }
+        }
+        if (!encontrado) {
+            sonidos_activos.push_back({&s, limit});
+        }
     }
 }
 

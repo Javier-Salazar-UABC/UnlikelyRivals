@@ -4,6 +4,9 @@
 #include "../../Motor/Primitivos/Objetos.hpp"
 #include "../Figuras/Figuras.hpp"
 #include <vector>
+
+#include "Motor/Primitivos/CEPool.hpp"
+
 namespace IVJ
 {
     class FSM; //refefencia circular
@@ -13,8 +16,14 @@ namespace IVJ
         public:
             explicit IMaquinaEstado();
             ~IMaquinaEstado() override{};
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IMaquinaEstado>(*this);
+            };
         public:
             std::shared_ptr<FSM> fsm;
+            bool congelar{false};
     };
 
     //componente QUEST con un arreglo de int de 8 bit
@@ -33,6 +42,11 @@ namespace IVJ
             CE::Vector2D& getP1() const;
             CE::Vector2D& getP2();
             float getMagnitud() const {return magnitud;}
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IRayo>(*this);
+            };
     };
 
     class IInteractuable : public CE::IComponentes
@@ -49,6 +63,7 @@ namespace IVJ
     {
         public:
             explicit IIndicador(const sf::Texture &ref,float escala,Entidad *p, const sf::Color& c);
+            IIndicador(const IIndicador& other);
             virtual ~IIndicador() =default;
             void onInteractuar(CE::Objeto& obj) override;
             void onRender();
@@ -59,6 +74,13 @@ namespace IVJ
             float escala;
             int frame_activo{0};
             bool activo{false};
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                // Note: sf::Shader is not copyable. If this is cloned, 
+                // the shader state might need manual handling.
+                return std::make_shared<IIndicador>(*this);
+            };
         private:
             Entidad* parent;
     };
@@ -76,6 +98,11 @@ namespace IVJ
             std::wstring texto;
             int id_texto;
             bool activo{false};
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IDialogo>(*this);
+            };
     };
 
     class IGirar : public CE::IComponentes
@@ -85,6 +112,11 @@ namespace IVJ
     public:
         float angulo;
         float radio;
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IGirar>(*this);
+        };
     };
 
     class IArribaAbajo : public CE::IComponentes
@@ -94,6 +126,11 @@ namespace IVJ
     public:
         float distancia;
         float angulo{0.0f};
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IArribaAbajo>(*this);
+        };
     };
 
     class IOnda : public CE::IComponentes
@@ -104,6 +141,11 @@ namespace IVJ
         float amplitud;
         float frecuencia;
         float angulo{0.0f};
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IOnda>(*this);
+        };
     };
 
     class ICTimer : public CE::IComponentes
@@ -113,6 +155,11 @@ namespace IVJ
     public:
         int curr_frame;
         int max_frame;
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<ICTimer>(*this);
+        };
     };
 
     class ICheckEstado : public CE::IComponentes
@@ -120,6 +167,10 @@ namespace IVJ
     public:
         explicit ICheckEstado();
     public:
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<ICheckEstado>(*this);
+        };
     };
 
     struct NodoPosicion {
@@ -180,6 +231,7 @@ namespace IVJ
     {
     public:
         ICParte();
+        ICParte(const ICParte& other);
         ~ICParte() override;
 
         ColaPosiciones cola_posiciones;
@@ -189,6 +241,11 @@ namespace IVJ
         IVJ::ICTimer* timer;
 
         bool hacerAccion{false};
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<ICParte>(*this);
+        };
     };
 
     class ICPartesCuerpo : public CE::IComponentes
@@ -205,6 +262,11 @@ namespace IVJ
 
         // 3) Alto de la parte
         int height;
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<ICPartesCuerpo>(*this);
+        };
     };
 
     enum class TipoSalud {
@@ -232,6 +294,32 @@ namespace IVJ
         // Probabilidades individuales (generadas al nacer)
         int prob_contagio;   // Del 15% al 30%
         int prob_inmunidad;  // Del 1% al 10%
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IEstadoSalud>(*this);
+        };
+    };
+
+    class IEmisor : public CE::IComponentes
+    {
+    public:
+        explicit IEmisor(Entidad &parent, Entidad &prefab);
+        ~IEmisor(void) {};
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IEmisor>(*this);
+        };
+        void onUpdate(float dt);
+        void crearParticula(void);
+        CE::Pool &getPool(void)
+        {
+            return pool;
+        }
+    private:
+        CE::Pool pool;
+        Entidad &parent; // quien tiene el emisor
+        Entidad &prefab; // el objeto que se va copiar
     };
 
     class IVisualSalud : public CE::IComponentes
@@ -242,6 +330,11 @@ namespace IVJ
 
         std::map<TipoSalud, sf::Color> colores;
         IVJ::Rectangulo* figura{nullptr};
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IVisualSalud>(*this);
+        };
     };
 
     class ITriangulo : public CE::IComponentes
@@ -252,6 +345,11 @@ namespace IVJ
     public:
         sf::CircleShape tri_shape;
         float angulo;
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<ITriangulo>(*this);
+        };
     };
 
     class ITarget : public CE::IComponentes
@@ -262,6 +360,11 @@ namespace IVJ
         void setTarget(CE::Objeto& t);
     public:
         CE::Vector2D* pos;
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<ITarget>(*this);
+        };
     };
 
     class IRangoAggro : public CE::IComponentes
@@ -273,6 +376,11 @@ namespace IVJ
     public:
         float radio;
         sf::CircleShape marcador;
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IRangoAggro>(*this);
+        };
     };
 
     class IGravedad : public CE::IComponentes
@@ -286,52 +394,53 @@ namespace IVJ
         float velocidad_Y;
         bool en_suelo;
         int saltos_restantes;
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IGravedad>(*this);
+        };
     };
 
     /**
      * @class IAnimaciones
-     * @brief Mapa de claves de textura por nombre de animación.
+     * @brief Mapa de claves de textura y metadatos por nombre de animación.
      *
      * Permite que los FSMs sean genéricos: en lugar de tener el nombre del
-     * personaje hardcodeado, leen la clave de aquí.
-     *
-     * Claves estándar usadas por los FSMs del juego:
-     *   "idle", "walk", "run", "jump", "punch", "kick"
-     *
-     * Ejemplo de uso en un preset:
-     * @code
-     *   auto anim = std::make_shared<IAnimaciones>();
-     *   anim->set("idle",  "esnupi_idle");
-     *   anim->set("walk",  "esnupi_walk");
-     *   entidad->addComponente(anim);
-     * @endcode
+     * personaje hardcodeado, leen la clave y configuración de aquí.
      */
     class IAnimaciones : public CE::IComponentes
     {
     public:
+        struct AnimData {
+            std::string clave_textura;
+            int frames{1};
+            float frame_rate{0.1f};
+            int width{0};  // 0 significa usar el default del ISprite
+            int height{0}; // 0 significa usar el default del ISprite
+        };
+
         IAnimaciones() = default;
         ~IAnimaciones() override = default;
 
-        /** @brief Asigna la clave de textura para una animación. */
-        void set(const std::string& nombre_anim, const std::string& clave_textura)
+        /** @brief Asigna la configuración para una animación. */
+        void set(const std::string& nombre_anim, const std::string& clave_textura, int frames = 1, float rate = 0.1f, int w = 0, int h = 0)
         {
-            m_mapa[nombre_anim] = clave_textura;
+            m_mapa[nombre_anim] = {clave_textura, frames, rate, w, h};
         }
 
-        /**
-         * @brief Obtiene la clave de textura para una animación.
-         * @param nombre_anim Nombre de la animación ("idle", "walk", etc.)
-         * @param fallback    Clave a devolver si no existe la animación.
-         */
-        const std::string& get(const std::string& nombre_anim,
-                               const std::string& fallback = m_vacio) const
+        /** @brief Obtiene la configuración para una animación. */
+        const AnimData* get(const std::string& nombre_anim) const
         {
             auto it = m_mapa.find(nombre_anim);
-            return (it != m_mapa.end()) ? it->second : fallback;
+            return (it != m_mapa.end()) ? &it->second : nullptr;
+        }
+
+        std::shared_ptr<IComponentes> clonar() const override
+        {
+            return std::make_shared<IAnimaciones>(*this);
         }
 
     private:
-        std::map<std::string, std::string> m_mapa;
-        inline static const std::string m_vacio{};
+        std::map<std::string, AnimData> m_mapa;
     };
 }

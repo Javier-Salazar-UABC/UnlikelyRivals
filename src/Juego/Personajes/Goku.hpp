@@ -20,16 +20,18 @@ namespace IVJ
         static constexpr float GRAVEDAD     = 1200.f; 
         static constexpr float SALTO        = 700.f;  // Salta muy alto
         static constexpr float ESCALA       = 2.2f;   // Igual que Master Chief
-        static constexpr int   FRAME_W      = 16;     
-        static constexpr int   FRAME_H      = 32;     
+        static constexpr int   FRAME_W      = 16;
+        static constexpr int   FRAME_H      = 32;
 
 
         // ─── Rutas de sprites ───────────────────────────────────────────────
-        static constexpr const char* SPR_WALK  = ASSETS "/sprites/goku_walk.png";
+        static constexpr const char* SPR_WALK   = ASSETS "/sprites/goku_walk.png";
+        static constexpr const char* SPR_ATTACK = ASSETS "/sprites/goku_attack.png";
 
         // ─── Frame counts ───────────────────────────────────────────────────
-        static constexpr int FRAMES_WALK  = 4; // Ajustar según el PNG real
-        static constexpr int FRAMES_IDLE  = 1;
+        static constexpr int FRAMES_WALK   = 4; 
+        static constexpr int FRAMES_IDLE   = 1;
+        static constexpr int FRAMES_ATTACK = 7;
 
         /**
          * @brief Registra todas las texturas del personaje.
@@ -39,8 +41,8 @@ namespace IVJ
             auto& assets = CE::GestorAssets::Get();
             using V2 = CE::Vector2D;
 
-            // Por ahora solo tenemos goku_walk, lo usamos para todo
-            assets.agregarTextura("goku_walk", SPR_WALK, V2{0,0}, V2{(float)(FRAME_W * FRAMES_WALK), (float)FRAME_H});
+            assets.agregarTextura("goku_walk",   SPR_WALK,   V2{0,0}, V2{(float)(FRAME_W * FRAMES_WALK),   (float)FRAME_H});
+            assets.agregarTextura("goku_attack", SPR_ATTACK, V2{0,0}, V2{(float)(32 * FRAMES_ATTACK), (float)32});
         }
 
         /**
@@ -61,14 +63,15 @@ namespace IVJ
                 FRAME_W, FRAME_H,
                 ESCALA);
 
-            // Mapa de animaciones (usamos goku_walk para todo por ahora)
+            // Mapa de animaciones (ahora con metadatos de frames, velocidad y tamaño)
             auto anim = std::make_shared<IAnimaciones>();
-            anim->set("idle",  "goku_walk");
-            anim->set("walk",  "goku_walk");
-            anim->set("run",   "goku_walk");
-            anim->set("jump",  "goku_walk");
-            anim->set("punch", "goku_walk");
-            anim->set("kick",  "goku_walk");
+            anim->set("idle",  "goku_walk",   FRAMES_IDLE, 0.15f, FRAME_W, FRAME_H);
+            anim->set("walk",  "goku_walk",   FRAMES_WALK, 0.1f,  FRAME_W, FRAME_H);
+            anim->set("run",   "goku_walk",   FRAMES_WALK, 0.08f, FRAME_W, FRAME_H);
+            anim->set("jump",  "goku_walk",   FRAMES_WALK, 0.1f,  FRAME_W, FRAME_H);
+            anim->set("punch", "goku_attack", FRAMES_ATTACK, 0.06f, 32, 32);
+            anim->set("kick",  "goku_attack", FRAMES_ATTACK, 0.06f, 32, 32);
+            anim->set("hit",   "goku_attack", FRAMES_ATTACK, 0.06f, 32, 32); // Reusar frame de ataque para hit
 
             entidad->addComponente(std::make_shared<CE::IControl>());
             entidad->addComponente(std::make_shared<CE::IBoundingBox>(

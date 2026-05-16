@@ -18,7 +18,7 @@ namespace IVJ
         void onInputs(const CE::Botones& accion) override;
         void onRender() override;
         
-        enum class MenuState { MAIN, SETTINGS, CHAR_SELECT };
+        enum class MenuState { MAIN, SETTINGS, CHAR_SELECT, MODE_SELECT };
 
     private:
         struct Particle {
@@ -38,6 +38,7 @@ namespace IVJ
         void createJaggedBox(sf::ConvexShape& shape, sf::Vector2f size, float skew);
         void setupBackground();
         void setupMenu();
+        void setupModeSelect();
         void setupCharacterSelect();
         void setupDecorations();
 
@@ -48,6 +49,7 @@ namespace IVJ
         std::vector<MenuItem> mainItems;
         std::vector<MenuItem> settingsItems;
         std::vector<MenuItem> characterItems;
+        std::vector<MenuItem> modeItems;
         
         std::vector<MenuItem>* currentItems;
         

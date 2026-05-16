@@ -5,6 +5,7 @@
 #include "SaltarJugador.hpp"
 #include "../../Componentes/IJComponentes.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
+#include "../../Sistemas/Sistemas.hpp"
 #include "CorrerJugador.hpp"
 
 namespace IVJ
@@ -53,18 +54,35 @@ namespace IVJ
     }
     void GolpearJugador::onEntrar(const Entidad& obj)
     {
-        sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
-        s_w = obj.getComponente<CE::ISprite>()->width;
-        s_h = obj.getComponente<CE::ISprite>()->height;
-        const std::string& clave = obj.tieneComponente<IAnimaciones>()
-            ? obj.getComponente<IAnimaciones>()->get("punch", "esnupi_punch")
-            : "esnupi_punch";
-        sprite->setTexture(CE::GestorAssets::Get().getTextura(clave));
+        auto compSprite = obj.getComponente<CE::ISprite>();
+        sprite = &compSprite->m_sprite;
 
+        // Leer la configuración del componente IAnimaciones
+        if (obj.tieneComponente<IAnimaciones>()) {
+            if (auto* data = obj.getComponente<IAnimaciones>()->get("punch")) {
+                sprite->setTexture(CE::GestorAssets::Get().getTextura(data->clave_textura));
+                max_frames = data->frames;
+                max_tiempo = data->frame_rate; // <-- NUEVO
+                if (data->width > 0)  compSprite->width = data->width;
+                if (data->height > 0) compSprite->height = data->height;
+            }
+        } else {
+            // Fallback
+            sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_punch"));
+            max_frames = 4;
+        }
+
+        s_w = compSprite->width;
+        s_h = compSprite->height;
+        sprite->setOrigin({s_w / 2.f, s_h / 2.f});
+        sprite->setTextureRect(sf::IntRect({0, 0}, {s_w, s_h}));
         id_frame = 0;
         hitbox_activa = false;
         golpe_procesado = false;
         esperando_liberacion = true; // Ignorar el primer acc hasta que se suelte
+
+        // Reproducir sonido de ataque
+        ReproducirSonidoAleatorio("swing", 5);
     }
     void GolpearJugador::onSalir(const Entidad& obj)
     {

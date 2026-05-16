@@ -50,6 +50,20 @@ namespace IVJ
         transform->pos_prev =  transform->posicion;
 
     }
+
+    static int num_cpy = 0;
+    Entidad::Entidad(const Entidad &cpy)
+        : CE::Objeto{cpy}
+    {
+        nombre->nombre = cpy.getNombre()->nombre + "_" + std::to_string(++num_cpy);
+        //copia profunda de los componentes
+        //ya que no queremos la referencia si no un componente nuevo
+        for (auto &comp : cpy.componentes)
+        {
+            componentes.push_back(comp->clonar());
+        }
+    }
+
     void Entidad::inputFSM()
     {
         if(!getComponente<IMaquinaEstado>()
@@ -79,6 +93,8 @@ namespace IVJ
     
     void Entidad::setFSM(const std::shared_ptr<FSM>& mq)
     {
+        if (getComponente<IMaquinaEstado>()->congelar)
+            return;
         auto &estado_actual = getComponente<IMaquinaEstado>()->fsm;
         //transición de salida
         estado_actual->onSalir(*this);

@@ -15,6 +15,16 @@ namespace IVJ
     };
 
     /**
+     * @enum GameMode
+     * @brief Modos de juego disponibles.
+     */
+    enum class GameMode
+    {
+        PVP,
+        PVC
+    };
+
+    /**
      * @struct SeleccionPersonajes
      * @brief Almacena los personajes seleccionados por los jugadores.
      */
@@ -22,5 +32,6 @@ namespace IVJ
     {
         static inline PersonajeID p1_seleccionado = PersonajeID::SNOOPY;
         static inline PersonajeID p2_seleccionado = PersonajeID::MASTER_CHIEF;
+        static inline GameMode modo_juego = GameMode::PVP;
     };
 }

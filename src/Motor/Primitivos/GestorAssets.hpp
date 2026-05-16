@@ -1,6 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-// #include <SFML/Audio.hpp>
+#include <SFML/Audio.hpp>
 #include<map>
 #include<memory>
 #include <string>
@@ -50,10 +50,10 @@ namespace CE
             void agregarTextura(const std::string& key, const std::string& filepath,
                                 const CE::Vector2D& pos_init,const CE::Vector2D& dim);
             
-            /*
+            
             void agregarSonido(const std::string& key, const std::string& filepath);
             void agregarMusica(const std::string& key, const std::string& filepath);
-            */
+            
             
             /**
              * @brief Obtiene una fuente por clave.
@@ -74,18 +74,25 @@ namespace CE
             {
                 return *hashTexturas[key];
             }
+
+
             
-            /*
+            
             sf::Sound& getSonido(const std::string& key)
             {
                 return *hashSonidos[key];
+            }
+
+            sf::SoundBuffer& getSoundBuffer(const std::string& key)
+            {
+                return *hashBuffers[key];
             }
             
             sf::Music& getMusica(const std::string& key)
             {
                 return *hashMusica[key];
             }
-            */
+            
 
         private:
             /** @brief Caché de fuentes cargadas */
@@ -94,11 +101,9 @@ namespace CE
             /** @brief Caché de texturas cargadas */
             std::map<std::string, std::shared_ptr<sf::Texture>> hashTexturas;
             
-            /*
             std::map<std::string, std::shared_ptr<sf::Sound>> hashSonidos;
+            std::map<std::string, std::shared_ptr<sf::SoundBuffer>> hashBuffers;
             std::map<std::string, std::shared_ptr<sf::Music>> hashMusica;
-            sf::SoundBuffer sound_buffer;
-            */
             
             /** @brief Instancia singleton del gestor */
             static inline GestorAssets* instancia=nullptr;

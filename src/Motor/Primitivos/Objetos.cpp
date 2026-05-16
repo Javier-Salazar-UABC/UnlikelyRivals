@@ -11,6 +11,14 @@ namespace CE
         Objeto::num_objetos++;
 
     }
+    Objeto::Objeto(const Objeto &cpy)
+    {
+        //se crea espacio de memorua y se copia el contenido.
+        nombre = std::make_shared<INombre>(*cpy.nombre);
+        transform = std::make_shared<ITransform>(*cpy.transform);
+        stats = std::make_shared<IStats>(*cpy.stats);
+    }
+
 
     void Objeto::setPosicion(float x, float y)
     {

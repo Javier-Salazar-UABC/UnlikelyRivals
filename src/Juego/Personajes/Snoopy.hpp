@@ -95,12 +95,13 @@ namespace IVJ
 
             // Mapa de animaciones: los FSMs leerán de aquí en lugar de usar nombres hardcodeados
             auto anim = std::make_shared<IAnimaciones>();
-            anim->set("idle",  "esnupi_idle");
-            anim->set("walk",  "esnupi_walk");
-            anim->set("run",   "esnupi_run");
-            anim->set("jump",  "esnupi_jump");
-            anim->set("punch", "esnupi_punch");
-            anim->set("kick",  "esnupi_kick");
+            anim->set("idle",  "esnupi_idle",  FRAMES_IDLE,  0.15f);
+            anim->set("walk",  "esnupi_walk",  FRAMES_WALK,  0.1f);
+            anim->set("run",   "esnupi_run",   FRAMES_RUN,   0.08f);
+            anim->set("jump",  "esnupi_jump",  FRAMES_JUMP,  0.1f);
+            anim->set("punch", "esnupi_punch", FRAMES_PUNCH, 0.1f);
+            anim->set("kick",  "esnupi_kick",  FRAMES_KICK,  0.1f);
+            anim->set("hit",   "esnupi_jump",  FRAMES_JUMP,  0.1f); // Reusar salto para hit
 
             entidad->addComponente(std::make_shared<CE::IControl>());
             entidad->addComponente(std::make_shared<CE::IBoundingBox>(

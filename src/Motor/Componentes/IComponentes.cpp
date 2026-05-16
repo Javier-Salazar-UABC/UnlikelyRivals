@@ -19,16 +19,16 @@ namespace CE
         angulo{ang}
     {}
 
-    ITimer::ITimer()
-        :IComponentes{},frame_actual{0}
+    ITimer::ITimer(int max)
+        :IComponentes{},frame_actual{0}, frac_actual{0.0f}, frame_maximo{max}
     {}
 
     ITexto::ITexto(const sf::Font& font, const std::string& texto)
         :IComponentes{},m_texto{sf::Text(font,texto)}
     {}
 
-    ISprite::ISprite(const sf::Texture& textura,float escala)
-        :IComponentes{},m_sprite{textura},width{0},height{0},escala{escala}
+    ISprite::ISprite(sf::Texture& textura,float escala)
+        :IComponentes{},m_sprite{textura},width{0},height{0},escala{escala}, m_textura_ptr{&textura}
     {
         m_sprite.setScale({escala,escala});
         auto dim = textura.getSize();
@@ -37,11 +37,11 @@ namespace CE
         //pivote
         m_sprite.setOrigin({dim.x/2.f,dim.y/2.f});
     }
-    ISprite::ISprite(const sf::Texture& textura,int w,int h,float escala)
-        :IComponentes{},m_sprite{m_textura},width{w},height{h},escala{escala},m_textura{textura}
+    ISprite::ISprite(sf::Texture& textura,int w,int h,float escala)
+        :IComponentes{},m_sprite{textura},width{w},height{h},escala{escala},m_textura_ptr{&textura}
     {
-        m_textura.setSmooth(false);
-        m_sprite.setTexture(m_textura);
+        m_textura_ptr->setSmooth(false);
+        m_sprite.setTexture(*m_textura_ptr);
         m_sprite.setTextureRect(sf::IntRect{{0,0},{w,h}});
         m_sprite.setScale({escala,escala});
         //pivote
@@ -66,6 +66,26 @@ namespace CE
         }else
         {
             if(!m_shader.loadFromFile(vert,sf::Shader::Type::Vertex))
+                exit(EXIT_FAILURE);
+        }
+    }
+
+    IShader::IShader(const IShader& other)
+        : IComponentes(other), m_fragshaderFile(other.m_fragshaderFile), m_vertshaderFile(other.m_vertshaderFile)
+    {
+        if(!m_vertshaderFile.empty() && !m_fragshaderFile.empty())
+        {
+            if(!m_shader.loadFromFile(m_vertshaderFile, m_fragshaderFile))
+                exit(EXIT_FAILURE);
+        }
+        else if(m_vertshaderFile.empty())
+        {
+            if(!m_shader.loadFromFile(m_fragshaderFile, sf::Shader::Type::Fragment))
+                exit(EXIT_FAILURE);
+        }
+        else
+        {
+            if(!m_shader.loadFromFile(m_vertshaderFile, sf::Shader::Type::Vertex))
                 exit(EXIT_FAILURE);
         }
     }

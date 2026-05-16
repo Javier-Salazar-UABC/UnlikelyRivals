@@ -15,6 +15,7 @@
 #include "Juego/Sistemas/Sistemas.hpp"
 #include "Motor/Camaras/CamarasGestor.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
+#include "Juego/Maquinas/Balas/BalasBoom.hpp"
 
 
 namespace IVJ
@@ -25,7 +26,7 @@ namespace IVJ
     }
     void Escena_SpriteTiles::onInit()
     {
-        CE::GestorCamaras::Get().setCamaraActiva(3);
+        CE::GestorCamaras::Get().setCamaraActiva(2);
         //le decimos a quien persigue
         CE::GestorCamaras::Get().getCamaraActiva().lockEnObjeto(player);
         if(!inicializar) return;
@@ -39,7 +40,7 @@ namespace IVJ
         registrarBotones(sf::Keyboard::Scancode::D,"derecha");
         registrarBotones(sf::Keyboard::Scancode::Right,"derecha");
         registrarBotones(sf::Keyboard::Scancode::Enter,"aceptar");
-
+registrarBotones(sf::Keyboard::Scancode::Space, "atacar");
         //cargar mapa 3 layers
         tiles_layers.push_back(TileMap()); //puro mar
         tiles_layers.push_back(TileMap()); // las islas
@@ -54,10 +55,10 @@ namespace IVJ
         if(!tiles_layers[2].loadTileMap(ASSETS "/mapas/playa_layer3.txt"))
             exit(EXIT_FAILURE);
 
-        auto techo = std::make_shared<Entidad>();
-        techo->getStats()->hp_max=100;
-        techo->getStats()->hp=100;
-        techo->getStats()->def=150;
+        obstaculo = std::make_shared<Entidad>();
+        obstaculo->getStats()->hp_max=100;
+        obstaculo->getStats()->hp=100;
+        obstaculo->getStats()->def=150;
 
         //cargar todo el atlas para poder poner cosas individuales
         CE::GestorAssets::Get().agregarTextura("atlas_playa",
@@ -78,10 +79,10 @@ namespace IVJ
         //acomodar el pivote para centrar bien el bounding box en el centro
         //128/2 = 64, 256/2 = 128
         techo_sprite->m_sprite.setOrigin({64,128});
-        techo->addComponente(techo_sprite)
+        obstaculo->addComponente(techo_sprite)
             .addComponente(std::make_shared<CE::IBoundingBox>(CE::Vector2D{128,256}));
 
-        techo->setPosicion(1300,175);
+        obstaculo->setPosicion(1300,175);
 
         auto t_shader = std::make_shared<CE::IShader>("", ASSETS "/shaders/agua.frag");
         static sf::Texture p_tex = techo_sprite->m_sprite.getTexture();
@@ -94,8 +95,8 @@ namespace IVJ
         t_shader->setEscalar("vel_distorcion", &vescala);
         t_shader->setEscalar("frecuencia", &frec);
 
-        techo->addComponente(t_shader);
-        objetos.agregarPool(techo);
+        obstaculo->addComponente(t_shader);
+        objetos.agregarPool(obstaculo);
         //Lab 8 animaciones
         CE::GestorAssets::Get().agregarTextura(
                 "nave_sheet",                               //key
@@ -110,6 +111,22 @@ namespace IVJ
                 CE::Vector2D{0.f,0.f},
                 CE::Vector2D{924.f,260.f}
             );
+
+        CE::GestorAssets::Get().agregarTextura(
+                "balas1",
+             ASSETS "/sprites/balas1.png",
+                CE::Vector2D{0.f, 0.f},
+                   CE::Vector2D{16 * 3, 16});
+
+        CE::GestorAssets::Get().agregarTextura(
+            "sprite1",
+            ASSETS "/sprites/sprite1.png",
+            CE::Vector2D{0.f, 0.f},
+               CE::Vector2D{128, 256});
+
+        CE::GestorAssets::Get().agregarSonido(
+            "tetirorayo", 
+            ASSETS "/sonidos/tetirorayo.mp3");
 
         auto trans = player->getTransformada();
         trans->velocidad = CE::Vector2D{120.f,120.f};
@@ -133,6 +150,23 @@ namespace IVJ
         player->addComponente(me);
         //ejecuta onEntrar para inicializar variables
         player->setFSM(me->fsm);
+
+        // lab11 Prefab
+        static auto bala_prefab = std::make_shared<Entidad>();
+        bala_prefab->getStats()->hp_max = 1;
+        bala_prefab->getStats()->hp = 1;
+        bala_prefab->getStats()->str = 64;
+        bala_prefab->getTransformada()->velocidad = CE::Vector2D{750.f, 750.f};
+        auto bala_sprite = std::make_shared<CE::ISprite>(CE::GestorAssets::Get().getTextura("balas1"), 16, 16, 3.f);
+        bala_prefab->addComponente(bala_sprite);
+        bala_prefab->addComponente(std::make_shared<CE::IBoundingBox>(16));
+        bala_prefab->addComponente(std::make_shared<CE::ITimer>(180)); // 3seg a 60fps
+        auto bala_me = std::make_shared<IVJ::IMaquinaEstado>();
+        bala_prefab->addComponente(bala_me);
+        auto emisor = std::make_shared<IEmisor>(*player, *bala_prefab);
+        player->addComponente(emisor);
+        //fin lab11 prefab
+
 
         //boss entidad
         auto boss = std::make_shared<Entidad>();
@@ -182,7 +216,31 @@ namespace IVJ
     {
         player->inputFSM(); //ejecutar los inputs de la maquina
         player->onUpdate(dt);
-        SistemaMover(player, dt);
+        
+        // Movimiento Top-Down
+        auto control = player->getComponente<CE::IControl>();
+        auto trans = player->getTransformada();
+        float vel_ship = 400.f;
+        trans->velocidad = {0.f, 0.f};
+
+        if (control->arr) trans->velocidad.y = -vel_ship;
+        if (control->abj) trans->velocidad.y = vel_ship;
+        if (control->der) trans->velocidad.x = vel_ship;
+        if (control->izq) trans->velocidad.x = -vel_ship;
+
+        // Actualizar ángulo para el disparo (según lógica de IEmisor)
+        const float pi = 3.14159f;
+        if (control->arr && control->der) trans->angulo = pi/4.f;
+        else if (control->arr && control->izq) trans->angulo = -pi/4.f;
+        else if (control->abj && control->der) trans->angulo = 3.f*pi/4.f;
+        else if (control->abj && control->izq) trans->angulo = -3.f*pi/4.f;
+        else if (control->arr) trans->angulo = 0.f;
+        else if (control->abj) trans->angulo = pi;
+        else if (control->der) trans->angulo = pi/2.f;
+        else if (control->izq) trans->angulo = -pi/2.f;
+
+        SistemaMover(std::vector<std::shared_ptr<CE::Objeto>>{player}, dt);
+        player->getComponente<IEmisor>()->onUpdate(dt);
         for(auto& obj: objetos.getPool())
         {
             obj->inputFSM();
@@ -194,10 +252,42 @@ namespace IVJ
             }
             SistemaColAABBMid(*player, *obj, true);
         }
-        static float acum_tiempo = 0;
-        acum_tiempo += dt;
-        objetos.getPool()[116]->getComponente<CE::IShader>()->setEscalar("dt", &acum_tiempo);
-        //fin shaders
+
+        //lab11 prefab
+        for (auto &bala : player->getComponente<IEmisor>()->getPool().getPool())
+        {
+            if (obstaculo)
+            {
+                if (SistemaColAABBMid(*bala, *obstaculo, true))
+                {
+                    ((Entidad &)*bala).setFSM(std::make_shared<BalasBoom>(0.33f));
+                    bala->getComponente<IMaquinaEstado>()->congelar = true;
+                    // daño una sola vez
+                    bala->getTransformada()->velocidad = CE::Vector2D{0.f, 0.f};
+                    if (obstaculo->getStats()->congelar == false)
+                    {
+                        float mitigar = obstaculo->getStats()->def / 255.f;
+                        obstaculo->getStats()->hp -= (mitigar * bala->getStats()->str);
+                        obstaculo->getStats()->congelar = true;
+                    }
+                }
+
+                if (bala->getComponente<CE::ITimer>()->frame_actual >= bala->getComponente<CE::ITimer>()->frame_maximo)
+                {
+                    obstaculo->getStats()->congelar = false;
+                }
+            }
+        }
+        if (obstaculo)
+        {
+            static float acum_tiempo = 0;
+            acum_tiempo += dt;
+            obstaculo->getComponente<CE::IShader>()->setEscalar("dt", &acum_tiempo);
+            //quitar la referencia, para que elimine el puntero
+            if (obstaculo->getStats()->hp <= 0)
+                obstaculo = nullptr;
+        }
+
         // lab9 borra toda entidad que esta en el pool que hp sea <=0
         objetos.borrarPool();
     }
@@ -223,6 +313,15 @@ namespace IVJ
                 {
                     player->getComponente<CE::IControl>()->izq=true;
                 }
+                if (accion.getNombre() == "aceptar")
+                {
+                }
+                // lab9 colisiones y lab11 prefab
+                if (accion.getNombre() == "atacar")
+                {
+                    player->getComponente<CE::IControl>()->acc = true;
+                    player->getComponente<IEmisor>()->crearParticula();
+                }
                 break;
             }
             case CE::Botones::TipoAccion::OnRelease:
@@ -242,6 +341,10 @@ namespace IVJ
                 if(accion.getNombre() == "izquierda")
                 {
                     player->getComponente<CE::IControl>()->izq=false;
+                }
+                if (accion.getNombre() == "atacar")
+                {
+                    player->getComponente<CE::IControl>()->acc = false;
                 }
                 break;
             }
@@ -267,6 +370,10 @@ namespace IVJ
                 rango->marcador.setPosition({pos.x,pos.y});
                 //CE::Render::Get().AddToDraw(rango->marcador);
             }
+        }
+        for (auto &p : player->getComponente<IEmisor>()->getPool().getPool())
+        {
+            CE::Render::Get().AddToDraw(*p);
         }
         CE::Render::Get().AddToDraw(*player);
 

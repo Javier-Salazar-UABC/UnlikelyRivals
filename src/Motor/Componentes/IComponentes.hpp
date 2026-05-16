@@ -27,6 +27,7 @@ namespace CE
         public:
             /** @brief Destructor virtual por defecto */
             virtual ~IComponentes()=default;
+            virtual std::shared_ptr<IComponentes> clonar() const = 0;
     };
 
     /**
@@ -46,6 +47,11 @@ namespace CE
             
             /** @brief Destructor virtual */
             ~INombre() override{};
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<INombre>(*this);
+            };
             
         public:
             /** @brief Nombre/identificador de la entidad */
@@ -76,7 +82,10 @@ namespace CE
             ITransform(const Vector2D& pos, const Vector2D& vel, float ang);
             
             /** @brief Destructor virtual */
-            ~ITransform() override{};
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<ITransform>(*this);
+            };
             
         public:
             /** @brief Posición actual de la entidad */
@@ -102,17 +111,25 @@ namespace CE
     class ITimer : public IComponentes
     {
         public:
-            /** @brief Constructor inicializa timer en 0 */
-            ITimer();
+            /** @brief Constructor con máximo de frames */
+            explicit ITimer(int max);
             
             /** @brief Destructor virtual */
             ~ITimer() override{};
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<ITimer>(*this);
+            };
 
             /** @brief Frame actual de la animación */
             int frame_actual;
             
             /** @brief Fracción decimal del frame (0.0 a 1.0) para interpolación */
             float frac_actual;
+
+            /** @brief Frame máximo antes de reiniciar o terminar */
+            int frame_maximo;
     };
     
     /**
@@ -151,6 +168,15 @@ namespace CE
 
             /** @brief Contador de golpes recibidos */
             int hit_count{0};
+
+            /** @brief Tiempo que el personaje no puede actuar por recibir un golpe */
+            float hitstun_timer{0.0f};
+
+            bool congelar{false};
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IStats>(*this);
+            };
     };
 
     /**
@@ -173,6 +199,11 @@ namespace CE
             /** @brief Destructor virtual */
             ~ITexto()override{};
 
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<ITexto>(*this);
+            };
+
             /** @brief Objeto de texto SFML que se renderiza */
             sf::Text m_texto;
     };
@@ -192,19 +223,24 @@ namespace CE
              * @param textura Referencia a la textura SFML
              * @param escala Factor de escala (1.0 = tamaño original)
              */
-            ISprite(const sf::Texture& textura,float escala);
+            ISprite(sf::Texture& textura,float escala);
             
             /**
              * @brief Constructor con dimensiones específicas.
-             * @param textura Referencia a la textura SFML
+             * @param textura Puntero compartido a la textura SFML
              * @param w Ancho deseado del sprite en píxeles
              * @param h Alto deseado del sprite en píxeles
              * @param escala Factor de escala adicional
              */
-            ISprite(const sf::Texture& textura,int w,int h,float escala);
+            ISprite(sf::Texture& textura,int w,int h,float escala);
             
             /** @brief Destructor virtual */
             ~ISprite() override{};
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<ISprite>(*this);
+            };
             
         public:
             /** @brief Objeto sprite SFML para renderizado */
@@ -220,8 +256,7 @@ namespace CE
             float escala;
             
         private:
-            /** @brief Textura SFML asociada al sprite */
-            sf::Texture m_textura;
+            sf::Texture* m_textura_ptr;
     };
 
     /**
@@ -252,15 +287,22 @@ namespace CE
             };
             
         public:
-            /**
-             * @brief Constructor del componente shader.
+            /** @brief Constructor del componente shader.
              * @param vert Ruta al archivo de vertex shader
              * @param frag Ruta al archivo de fragment shader
              */
             explicit IShader(const std::string& vert, const std::string& frag);
             
+            /** @brief Constructor de copia para manejar sf::Shader no copyable */
+            IShader(const IShader& other);
+
             /** @brief Destructor virtual */
             ~IShader() override{};
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IShader>(*this);
+            };
             
             /**
              * @brief Establece un uniform escalar (float).
@@ -387,6 +429,11 @@ namespace CE
              * @return true si está activo, false si está desactivado
              */
             bool isActivo()const{return activo;}
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IControl>(*this);
+            };
             
         private:
             /** @brief Bandera de activación del componente */
@@ -439,6 +486,11 @@ namespace CE
 
             /** @brief Máscara de bits que define con qué capas puede colisionar */
             uint32_t mask;
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IBoundingBox>(*this);
+            };
     };
 
     /**
@@ -493,6 +545,11 @@ namespace CE
             
             /** @brief Lista de componentes para cada entidad generada */
             std::vector<std::shared_ptr<IComponentes>> componentes;
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IRespawn>(*this);
+            };
     };
 
     /**
@@ -534,6 +591,11 @@ namespace CE
             
             /** @brief Frame actual dentro de la curva */
             int frame_actual_curva;
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<IPaths>(*this);
+            };
     };
 }
 

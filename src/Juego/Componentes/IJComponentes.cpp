@@ -3,6 +3,8 @@
 #include "../../Motor/Primitivos/GestorAssets.hpp"
 #include <cmath>
 #include <string>
+#include "../Sistemas/Sistemas.hpp"
+#include "../Maquinas/Balas/BalasIdle.hpp"
 
 
 namespace IVJ
@@ -96,6 +98,14 @@ namespace IVJ
         CE::GestorAssets::Get().getTextura("blob"));
         shader.setUniform("mask_color",sf::Glsl::Vec4(color));
     }
+    IIndicador::IIndicador(const IIndicador& other)
+        : IInteractuable(other), sprite(other.sprite), color(other.color), escala(other.escala), frame_activo(other.frame_activo), activo(other.activo), parent(other.parent)
+    {
+        // Reload shader
+        if(!shader.loadFromFile(ASSETS "/shaders/prueba.frag",sf::Shader::Type::Fragment)) exit(1);
+        shader.setUniform("blob", CE::GestorAssets::Get().getTextura("blob"));
+        shader.setUniform("mask_color",sf::Glsl::Vec4(color));
+    }
     void IIndicador::onInteractuar(CE::Objeto &obj)
     {
         (void)obj;
@@ -142,6 +152,22 @@ namespace IVJ
 
         // Usaremos 12 frames de retraso para que las partes no se encimen
         timer = new IVJ::ICTimer(0, 12);
+    }
+    
+    ICParte::ICParte(const ICParte& other)
+        : CE::IComponentes(other), hacerAccion(other.hacerAccion)
+    {
+        // Deep copy
+        pos = new CE::ITransform(*other.pos);
+        if (other.parte) {
+            // This is tricky as Figuras might need their own cloning logic,
+            // but for now we assume they are copyable or we just recreate them.
+            // Assuming Rectangulo is the common one used here.
+            parte = new IVJ::Rectangulo(*(IVJ::Rectangulo*)other.parte);
+        } else {
+            parte = nullptr;
+        }
+        timer = new IVJ::ICTimer(*other.timer);
     }
 
     // Nuevo destructor para evitar memory leaks
@@ -228,4 +254,77 @@ namespace IVJ
     {
     }
 
+    IEmisor::IEmisor(Entidad &parent, Entidad &prefab)
+    : CE::IComponentes{}, pool{1}, parent{parent}, prefab{prefab}
+{}
+
+void IEmisor::onUpdate(float dt)
+{
+    for (auto &p : pool.getPool())
+    {
+        // asumir que tiene un timer de lo contrario crushear
+        auto itimer = p->getComponente<CE::ITimer>();
+        // verificar si ya llego al timer, si si poner vida 0 y borrar
+        if (itimer->frame_actual >= itimer->frame_maximo)
+            p->getStats()->hp = 0;
+        // ejecutar update y mover?
+        p->onUpdate(dt);
+        SistemaMoverBalas(p, dt);
+        itimer->frame_actual++;
+    }
+    //borar si vida es 0
+    pool.borrarPool();
+}
+void IEmisor::crearParticula(void)
+{
+    auto nuevo = std::make_shared<Entidad>(prefab);
+    //  calcular dirección y posición
+    auto p_pos = parent.getTransformada()->posicion;
+    auto n_vel = nuevo->getTransformada()->velocidad;
+    nuevo->getTransformada()->angulo = parent.getTransformada()->angulo;
+    float ang = nuevo->getTransformada()->angulo;
+    const float pi = std::round(3.14159f * 1000.f) / 1000.f;
+    const float pi_2 = std::round(pi / 2.f * 1000.f) / 1000.f;
+    const float pi_4 = std::round(pi / 4.f * 1000.f) / 1000.f - 0.001f;
+    const float pi_4b = std::round(3.f * pi / 4.f * 1000.f) / 1000.f - 0.001f;
+    const float rang = std::round(ang * 1000.f) / 1000.f;
+    // std::cout << rang << ": " << pi << ", " << pi_2 << ", " << pi_4 << ", " << pi_4b << "\n";
+    auto vel = CE::Vector2D{0.f, 0.f};
+    if (rang == 0.f) //arriba
+        vel.y = -n_vel.y;
+    if (rang == pi) // PI: abajo
+        vel.y = n_vel.y;
+    if (rang == -pi_4) //-pi/4:izq arriba
+    {
+        vel.y = -n_vel.y;
+        vel.x = -n_vel.x;
+    }
+    if (rang == pi_4) // pi/4: der arriba
+    {
+        vel.y = -n_vel.y;
+        vel.x = n_vel.x;
+    }
+    if (rang == pi_2) // PI/2: der
+        vel.x = n_vel.x;
+    if (rang == -pi_2) // izq
+        vel.x = -n_vel.x;
+    // patch el 2.3 ya que redondea extraño
+    if (rang >= -pi_4b && rang <= -2.3) //-3pi/4 abajo izq
+    {
+        vel.y = n_vel.y;
+        vel.x = -n_vel.x;
+    }
+    if (rang <= pi_4b && rang >= 2.3) // 3pi/4 abajo der
+    {
+        vel.y = n_vel.y;
+        vel.x = n_vel.x;
+    }
+    //maquina de estados
+    nuevo->getComponente<IMaquinaEstado>()->fsm = std::make_shared<BalasIdle>(1.f);
+    nuevo->setFSM(nuevo->getComponente<IMaquinaEstado>()->fsm);
+    // en el objeto padre la posición
+    nuevo->setPosicion(p_pos.x, p_pos.y);
+    nuevo->getTransformada()->velocidad = vel;
+    pool.agregarPool(nuevo);
+}
 }

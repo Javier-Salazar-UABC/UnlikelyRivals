@@ -2,6 +2,7 @@
 #include "IdleJugadores.hpp"
 #include "MoverJugadores.hpp"
 #include "../../Componentes/IJComponentes.hpp"
+#include "../../Sistemas/Sistemas.hpp"
 #include "CorrerJugador.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
 #include "GolpearJugador.hpp"
@@ -44,13 +45,27 @@ namespace IVJ
     }
     void SaltarJugador::onEntrar(const Entidad& obj)
     {
-        sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
-        s_w = obj.getComponente<CE::ISprite>()->width;
-        s_h = obj.getComponente<CE::ISprite>()->height;
-        const std::string& clave = obj.tieneComponente<IAnimaciones>()
-            ? obj.getComponente<IAnimaciones>()->get("jump", "esnupi_jump")
-            : "esnupi_jump";
-        sprite->setTexture(CE::GestorAssets::Get().getTextura(clave));
+        auto compSprite = obj.getComponente<CE::ISprite>();
+        sprite = &compSprite->m_sprite;
+
+        // Leer la configuración del componente IAnimaciones
+        if (obj.tieneComponente<IAnimaciones>()) {
+            if (auto* data = obj.getComponente<IAnimaciones>()->get("jump")) {
+                sprite->setTexture(CE::GestorAssets::Get().getTextura(data->clave_textura));
+                // Nota: SaltarJugador tiene lógica interna para frames, pero actualizamos el tamaño y velocidad
+                act_tiempo = data->frame_rate; // <-- NUEVO
+                if (data->width > 0)  compSprite->width = data->width;
+                if (data->height > 0) compSprite->height = data->height;
+            }
+        } else {
+            // Fallback
+            sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_jump"));
+        }
+
+        s_w = compSprite->width;
+        s_h = compSprite->height;
+        sprite->setOrigin({s_w / 2.f, s_h / 2.f});
+        sprite->setTextureRect(sf::IntRect({0, 0}, {s_w, s_h}));
 
 
         if (aplicar_fuerza && obj.tieneComponente<IGravedad>()) {
@@ -59,6 +74,9 @@ namespace IVJ
                 grav->velocidad_Y = -350.f; // Fuerza del salto
                 grav->saltos_restantes--;
                 grav->en_suelo = false; 
+
+                // Reproducir sonido de salto
+                ReproducirSonidoAleatorio("jump", 5, false);
             }
         }
     }

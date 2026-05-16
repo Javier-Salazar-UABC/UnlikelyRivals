@@ -34,6 +34,10 @@ add_executable(CimaEngine3v main.cpp
         ../Juego/Maquinas/Bosses/IdleBoss.hpp
         ../Juego/Maquinas/Bosses/AttackBoss.cpp
         ../Juego/Maquinas/Bosses/AttackBoss.hpp
+        ../Juego/Maquinas/Balas/BalasIdle.cpp
+        ../Juego/Maquinas/Balas/BalasIdle.hpp
+        ../Juego/Maquinas/Balas/BalasBoom.cpp
+        ../Juego/Maquinas/Balas/BalasBoom.hpp
 )
 
 # copiar el archivo de configuración para las ides que sepan 

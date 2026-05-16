@@ -38,15 +38,29 @@ namespace IVJ
     }
     void CorrerJugador::onEntrar(const Entidad& obj)
     {
-        sprite = &obj.getComponente<CE::ISprite>()->m_sprite;
-        s_w = obj.getComponente<CE::ISprite>()->width;
-        s_h = obj.getComponente<CE::ISprite>()->height;
-        const std::string& clave = obj.tieneComponente<IAnimaciones>()
-            ? obj.getComponente<IAnimaciones>()->get("run", "esnupi_run")
-            : "esnupi_run";
-        sprite->setTexture(CE::GestorAssets::Get().getTextura(clave));
+        auto compSprite = obj.getComponente<CE::ISprite>();
+        sprite = &compSprite->m_sprite;
 
-        id_frame=0;
+        // Leer la configuración del componente IAnimaciones
+        if (obj.tieneComponente<IAnimaciones>()) {
+            if (auto* data = obj.getComponente<IAnimaciones>()->get("run")) {
+                sprite->setTexture(CE::GestorAssets::Get().getTextura(data->clave_textura));
+                max_frames = data->frames;
+                max_tiempo = data->frame_rate; // <-- NUEVO
+                if (data->width > 0)  compSprite->width = data->width;
+                if (data->height > 0) compSprite->height = data->height;
+            }
+        } else {
+            // Fallback
+            sprite->setTexture(CE::GestorAssets::Get().getTextura("esnupi_run"));
+            max_frames = 6;
+        }
+
+        s_w = compSprite->width;
+        s_h = compSprite->height;
+        sprite->setOrigin({s_w / 2.f, s_h / 2.f});
+        sprite->setTextureRect(sf::IntRect({0, 0}, {s_w, s_h}));
+        id_frame = 0;
     }
     void CorrerJugador::onSalir(const Entidad& obj)
     {

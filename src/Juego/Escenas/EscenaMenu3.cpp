@@ -31,6 +31,7 @@ namespace IVJ
         setupBackground();
         setupDecorations();
         setupMenu();
+        setupModeSelect();
         setupCharacterSelect();
 
 
@@ -195,6 +196,24 @@ namespace IVJ
         }
     }
 
+    void EscenaMenu3::setupModeSelect()
+    {
+        sf::Font& font = CE::GestorAssets::Get().getFont("p5_font");
+        std::vector<std::string> modes = {"1 VS 1 (PVP)", "PLAYER VS CPU", "BACK"};
+        for(size_t i=0; i<modes.size(); ++i) {
+            MenuItem item;
+            item.text = modes[i];
+            item.sfText = std::make_unique<sf::Text>(font);
+            item.sfText->setString(item.text);
+            item.sfText->setCharacterSize(45);
+            item.sfText->setStyle(sf::Text::Bold);
+            createJaggedBox(item.box, {400, 70}, 30);
+            item.rotation = -5.0f + (static_cast<float>(rand() % 10));
+            item.box.setPosition({-600, 200}); 
+            modeItems.push_back(std::move(item));
+        }
+    }
+
     void EscenaMenu3::setupCharacterSelect()
     {
         sf::Font& font = CE::GestorAssets::Get().getFont("p5_font");
@@ -254,6 +273,18 @@ namespace IVJ
                 characterItems[i].targetPos = {-700.0f, startY + i * spacing};
             }
         }
+
+        // Posiciones de los items de Modo
+        for(size_t i=0; i<modeItems.size(); ++i) {
+            if (currentState == MenuState::MODE_SELECT) {
+                float targetX = (i == (size_t)selectedIndex) ? 150.0f : 100.0f;
+                modeItems[i].targetPos = {targetX, startY + i * spacing};
+                modeItems[i].box.setFillColor((i == (size_t)selectedIndex) ? sf::Color::White : P5_RED);
+                if (modeItems[i].sfText) modeItems[i].sfText->setFillColor((i == (size_t)selectedIndex) ? P5_BLACK : sf::Color::White);
+            } else {
+                modeItems[i].targetPos = {-700.0f, startY + i * spacing};
+            }
+        }
     }
 
 
@@ -281,6 +312,7 @@ namespace IVJ
         animateItems(mainItems);
         animateItems(settingsItems);
         animateItems(characterItems);
+        animateItems(modeItems);
 
 
         // --- Background Dynamimco ---
@@ -390,11 +422,10 @@ namespace IVJ
                 
                 if (currentState == MenuState::MAIN) {
                     if (selected.text == "PLAY") {
-                        currentState = MenuState::CHAR_SELECT;
-                        currentItems = &characterItems;
+                        currentState = MenuState::MODE_SELECT;
+                        currentItems = &modeItems;
                         selectedIndex = 0;
-                        selectionStep = 0; // Reset a selección P1
-                        if (titleText) titleText->setString("SELECT P1");
+                        if (titleText) titleText->setString("SELECT MODE");
                         updatePositions();
                     } else if (selected.text == "LOAD GAME") {
                         CE::GestorEscenas::Get().cambiarEscena("EAtlas");
@@ -429,6 +460,24 @@ namespace IVJ
                             Globales::p2_seleccionado = id;
                             CE::GestorEscenas::Get().cambiarEscena("EAtlas");
                         }
+                    }
+                } else if (currentState == MenuState::MODE_SELECT) {
+                    if (selected.text == "BACK") {
+                        currentState = MenuState::MAIN;
+                        currentItems = &mainItems;
+                        selectedIndex = 0;
+                        if (titleText) titleText->setString("UNLIKELY RIVALS");
+                        updatePositions();
+                    } else {
+                        if (selected.text == "1 VS 1 (PVP)") Globales::modo_juego = GameMode::PVP;
+                        else Globales::modo_juego = GameMode::PVC;
+                        
+                        currentState = MenuState::CHAR_SELECT;
+                        currentItems = &characterItems;
+                        selectedIndex = 0;
+                        selectionStep = 0;
+                        if (titleText) titleText->setString("SELECT P1");
+                        updatePositions();
                     }
                 } else if (currentState == MenuState::SETTINGS) {
 
@@ -525,6 +574,10 @@ namespace IVJ
             if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
         }
         for(auto& item : characterItems) {
+            CE::Render::Get().AddToDraw(item.box);
+            if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
+        }
+        for(auto& item : modeItems) {
             CE::Render::Get().AddToDraw(item.box);
             if (item.sfText) CE::Render::Get().AddToDraw(*item.sfText);
         }
