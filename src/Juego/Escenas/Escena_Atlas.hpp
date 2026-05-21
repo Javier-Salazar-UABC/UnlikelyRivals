@@ -31,5 +31,9 @@ namespace IVJ
         const float m_p1StartY{260.f};
         const float m_p2StartX{420.f};
         const float m_p2StartY{260.f};
+
+        // --- CONFIGURACIÓN DE LUZ FIJA ---
+        // Modifica estas coordenadas para cambiar la posición de la luz en el escenario (x, y)
+        sf::Vector2f m_fixedLightPos{540.f, 50.f};
     };
 }

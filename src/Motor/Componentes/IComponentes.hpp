@@ -597,6 +597,44 @@ namespace CE
                 return std::make_shared<IPaths>(*this);
             };
     };
+
+    /**
+     * @class INormalMap
+     * @brief Componente que gestiona el mapa de normales de una entidad para iluminación 2D.
+     */
+    class INormalMap : public IComponentes
+    {
+        public:
+            INormalMap();
+            INormalMap(const INormalMap& other);
+            ~INormalMap() override = default;
+
+            std::shared_ptr<IComponentes> clonar() const override
+            {
+                return std::make_shared<INormalMap>(*this);
+            }
+
+            /**
+             * @brief Registra la correspondencia entre una textura difusa y su mapa de normales.
+             */
+            void registrarNormalMap(const sf::Texture* difusa, sf::Texture* normal);
+
+            /**
+             * @brief Obtiene la textura de normales correspondiente.
+             */
+            sf::Texture* getNormalTexture(const sf::Texture* difusa) const;
+
+        public:
+            sf::Shader m_shader;
+            std::map<const sf::Texture*, sf::Texture*> m_normalMaps;
+
+            // Parámetros dinámicos de la luz y material
+            sf::Vector2f lightPos{540.f, 360.f};
+            sf::Vector3f lightColor{1.0f, 0.5f, 0.0f};      // ¡Foco de luz color Naranja ardiente!
+            sf::Vector3f ambientColor{0.9f, 0.9f, 0.9f};    // Ambiente global casi blanco / muy iluminado
+            sf::Vector3f lightFalloff{0.4f, 0.001f, 0.000008f}; // Atenuación suave
+            float lightHeight{60.0f};                        // Altura de la luz en Z
+    };
 }
 
 

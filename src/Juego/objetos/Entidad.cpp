@@ -138,14 +138,52 @@ namespace IVJ
             target.draw(fig->tri_shape);
         }
 
-        //revisar si tiene ciertos componentes
-        //para renderizarlos debidamente
-        //o hacer una clase hija y ahí revisar
         if(tieneComponente<CE::ISprite>())
         {
             auto sprite = getComponente<CE::ISprite>();
-            //SHADER  NO ME GUSTA ES LENTO
-            if(tieneComponente<CE::IShader>())
+            
+            if(tieneComponente<CE::INormalMap>())
+            {
+                auto normalComponent = getComponente<CE::INormalMap>();
+                const sf::Texture* diffuseTex = &sprite->m_sprite.getTexture();
+                sf::Texture* normalTex = normalComponent->getNormalTexture(diffuseTex);
+                
+                if (normalTex)
+                {
+                    auto& shader = normalComponent->m_shader;
+                    shader.setUniform("normalMap", *normalTex);
+                    
+                    if (diffuseTex) {
+                        sf::Vector2u size = diffuseTex->getSize();
+                        shader.setUniform("textureSize", sf::Vector2f(size.x, size.y));
+                    }
+                    
+                    sf::IntRect rect = sprite->m_sprite.getTextureRect();
+                    shader.setUniform("textureRect", sf::Glsl::Vec4(rect.position.x, rect.position.y, rect.size.x, rect.size.y));
+                    
+                    auto pos = getTransformada()->posicion;
+                    shader.setUniform("spritePos", sf::Vector2f(pos.x, pos.y));
+                    
+                    sf::Vector2f origin = sprite->m_sprite.getOrigin();
+                    shader.setUniform("spriteOrigin", origin);
+                    
+                    sf::Vector2f scale = sprite->m_sprite.getScale();
+                    shader.setUniform("spriteScale", scale);
+                    
+                    shader.setUniform("lightPos", normalComponent->lightPos);
+                    shader.setUniform("lightColor", normalComponent->lightColor);
+                    shader.setUniform("ambientColor", normalComponent->ambientColor);
+                    shader.setUniform("lightFalloff", normalComponent->lightFalloff);
+                    shader.setUniform("lightHeight", normalComponent->lightHeight);
+                    
+                    target.draw(sprite->m_sprite, &shader);
+                }
+                else
+                {
+                    target.draw(sprite->m_sprite);
+                }
+            }
+            else if(tieneComponente<CE::IShader>())
             {
                 target.draw(sprite->m_sprite,&getComponente<CE::IShader>()->m_shader);
             }

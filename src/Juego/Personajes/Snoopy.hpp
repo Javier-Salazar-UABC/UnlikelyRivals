@@ -46,6 +46,15 @@ namespace IVJ
         static constexpr const char* SPR_KICK  = ASSETS "/sprites/snoopy/esnupi_kick.png";
         static constexpr const char* SPR_DOWN_B = ASSETS "/sprites/snoopy/esnupi_down-B.png";
 
+        // ─── Rutas de mapas de normales ─────────────────────────────────────
+        static constexpr const char* SPR_WALK_N  = ASSETS "/sprites/snoopy/NormalMaps/esnupi_walk_n.png";
+        static constexpr const char* SPR_RUN_N   = ASSETS "/sprites/snoopy/NormalMaps/esnupi_run_n.png";
+        static constexpr const char* SPR_JUMP_N  = ASSETS "/sprites/snoopy/NormalMaps/esnupi_jump_n.png";
+        static constexpr const char* SPR_IDLE_N  = ASSETS "/sprites/snoopy/NormalMaps/esnupi_idle_n.png";
+        static constexpr const char* SPR_PUNCH_N = ASSETS "/sprites/snoopy/NormalMaps/esnupi_punch_n.png";
+        static constexpr const char* SPR_KICK_N  = ASSETS "/sprites/snoopy/NormalMaps/esnupi_kick_n.png";
+        static constexpr const char* SPR_DOWN_B_N = ASSETS "/sprites/snoopy/NormalMaps/esnupi_down-B_n.png";
+
         // ─── Frame counts por animación ─────────────────────────────────────
         static constexpr int FRAMES_WALK  = 4;
         static constexpr int FRAMES_RUN   = 6;
@@ -73,6 +82,15 @@ namespace IVJ
             assets.agregarTextura("esnupi_punch", SPR_PUNCH, V2{0,0}, V2{(float)(FRAME_W * FRAMES_PUNCH), (float)FRAME_H});
             assets.agregarTextura("esnupi_kick",  SPR_KICK,  V2{0,0}, V2{(float)(FRAME_W * FRAMES_KICK),  (float)FRAME_H});
             assets.agregarTextura("esnupi_down_b", SPR_DOWN_B, V2{0,0}, V2{(float)(40 * FRAMES_DOWN_B), 40.f});
+
+            // Registrar mapas de normales correspondientes
+            assets.agregarTextura("esnupi_walk_n",  SPR_WALK_N,  V2{0,0}, V2{(float)(FRAME_W * FRAMES_WALK),  (float)FRAME_H});
+            assets.agregarTextura("esnupi_run_n",   SPR_RUN_N,   V2{0,0}, V2{(float)(FRAME_W * FRAMES_RUN),   (float)FRAME_H});
+            assets.agregarTextura("esnupi_jump_n",  SPR_JUMP_N,  V2{0,0}, V2{(float)(FRAME_W * FRAMES_JUMP),  (float)FRAME_H});
+            assets.agregarTextura("esnupi_idle_n",  SPR_IDLE_N,  V2{0,0}, V2{(float)(FRAME_W * FRAMES_IDLE),  (float)FRAME_H});
+            assets.agregarTextura("esnupi_punch_n", SPR_PUNCH_N, V2{0,0}, V2{(float)(FRAME_W * FRAMES_PUNCH), (float)FRAME_H});
+            assets.agregarTextura("esnupi_kick_n",  SPR_KICK_N,  V2{0,0}, V2{(float)(FRAME_W * FRAMES_KICK),  (float)FRAME_H});
+            assets.agregarTextura("esnupi_down_b_n", SPR_DOWN_B_N, V2{0,0}, V2{(float)(40 * FRAMES_DOWN_B), 40.f});
         }
 
         /**
@@ -114,6 +132,20 @@ namespace IVJ
             entidad->addComponente(std::make_shared<IGravedad>(GRAVEDAD, SALTO));
             entidad->addComponente(sprite);
             entidad->addComponente(anim);
+
+            // Crear y configurar el mapa de normales para Snoopy
+            auto normalMapComp = std::make_shared<CE::INormalMap>();
+            auto& assets = CE::GestorAssets::Get();
+            normalMapComp->registrarNormalMap(&assets.getTextura("esnupi_walk"),  &assets.getTextura("esnupi_walk_n"));
+            normalMapComp->registrarNormalMap(&assets.getTextura("esnupi_run"),   &assets.getTextura("esnupi_run_n"));
+            normalMapComp->registrarNormalMap(&assets.getTextura("esnupi_jump"),  &assets.getTextura("esnupi_jump_n"));
+            normalMapComp->registrarNormalMap(&assets.getTextura("esnupi_idle"),  &assets.getTextura("esnupi_idle_n"));
+            normalMapComp->registrarNormalMap(&assets.getTextura("esnupi_punch"), &assets.getTextura("esnupi_punch_n"));
+            normalMapComp->registrarNormalMap(&assets.getTextura("esnupi_kick"),  &assets.getTextura("esnupi_kick_n"));
+            normalMapComp->registrarNormalMap(&assets.getTextura("esnupi_down_b"), &assets.getTextura("esnupi_down_b_n"));
+
+            
+            entidad->addComponente(normalMapComp);
 
             auto me = std::make_shared<IMaquinaEstado>();
             me->fsm = std::make_shared<IdleJugadores>(FRAMES_IDLE, 0.15f);

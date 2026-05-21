@@ -452,6 +452,18 @@ namespace IVJ
             }
         }
 
+        // --- ACTUALIZAR POSICIÓN DE LA LUZ DINÁMICA (Normal Mapping - Fija) ---
+        if (player && player->tieneComponente<CE::INormalMap>())
+        {
+            auto norm = player->getComponente<CE::INormalMap>();
+            norm->lightPos = m_fixedLightPos;
+        }
+        if (p2 && p2->tieneComponente<CE::INormalMap>())
+        {
+            auto norm = p2->getComponente<CE::INormalMap>();
+            norm->lightPos = m_fixedLightPos;
+        }
+
         // Primera pasada: actualizar todos los objetos
         for(auto& obj: objetos.getPool())
         {
@@ -633,6 +645,67 @@ namespace IVJ
 #endif
         // --- DIBUJAR PARTÍCULAS DE MUERTE (Al final para que estén arriba) ---
         SistemaDibujarParticulasMuerte();
+
+        // --- DIBUJAR PUNTOS DE LUZ (Indicador Visual de las Fuentes de Luz) ---
+        auto dibujarPuntoLuz = [](const sf::Vector2f& pos, const sf::Vector3f& colorRGB) {
+            sf::Color centerColor(
+                static_cast<std::uint8_t>(colorRGB.x * 255.f),
+                static_cast<std::uint8_t>(colorRGB.y * 255.f),
+                static_cast<std::uint8_t>(colorRGB.z * 255.f),
+                180
+            );
+            sf::Color outerColor(
+                static_cast<std::uint8_t>(colorRGB.x * 255.f),
+                static_cast<std::uint8_t>(colorRGB.y * 255.f),
+                static_cast<std::uint8_t>(colorRGB.z * 255.f),
+                0
+            );
+
+            // Crear un círculo con degradado radial usando TriangleFan
+            const int puntos = 24;
+            const float radio = 35.f;
+            sf::VertexArray gradient(sf::PrimitiveType::TriangleFan, puntos + 2);
+            
+            // Centro
+            gradient[0].position = pos;
+            gradient[0].color = centerColor;
+            
+            // Perímetro
+            for (int i = 0; i <= puntos; ++i) {
+                float angle = i * 2.0f * 3.14159265f / puntos;
+                gradient[i + 1].position = pos + sf::Vector2f(std::cos(angle) * radio, std::sin(angle) * radio);
+                gradient[i + 1].color = outerColor;
+            }
+            
+            CE::Render::Get().AddToDraw(gradient);
+
+            // Núcleo brillante central
+            sf::CircleShape core(5.f);
+            core.setOrigin({5.f, 5.f});
+            core.setPosition(pos);
+            core.setFillColor(sf::Color(255, 255, 255, 240));
+            CE::Render::Get().AddToDraw(core);
+        };
+
+        // Dibujar el punto de luz fija si alguno de los personajes tiene INormalMap
+        sf::Vector3f lightColor{1.0f, 0.95f, 0.8f}; // Color por defecto (cálido)
+        bool mostrarLuz = false;
+        
+        if (player && player->tieneComponente<CE::INormalMap>())
+        {
+            lightColor = player->getComponente<CE::INormalMap>()->lightColor;
+            mostrarLuz = true;
+        }
+        else if (p2 && p2->tieneComponente<CE::INormalMap>())
+        {
+            lightColor = p2->getComponente<CE::INormalMap>()->lightColor;
+            mostrarLuz = true;
+        }
+
+        if (mostrarLuz)
+        {
+            dibujarPuntoLuz(m_fixedLightPos, lightColor);
+        }
 
         // --- DIBUJAR CUENTA ATRÁS (UI OVERLAY) ---
         if (m_countdownState >= 0 && m_countdownText)

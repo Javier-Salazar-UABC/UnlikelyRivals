@@ -181,6 +181,48 @@ namespace CE
         puntos.push_back(p2); //punto de control
         puntos.push_back(p3); // final curva
     }
+
+    INormalMap::INormalMap()
+        : IComponentes{}
+    {
+        if (!m_shader.loadFromFile(ASSETS "/shaders/iluminacion.frag", sf::Shader::Type::Fragment))
+        {
+            // El error detallado ya es reportado por consola por SFML
+        }
+    }
+
+    INormalMap::INormalMap(const INormalMap& other)
+        : IComponentes(other),
+          m_normalMaps(other.m_normalMaps),
+          lightPos(other.lightPos),
+          lightColor(other.lightColor),
+          ambientColor(other.ambientColor),
+          lightFalloff(other.lightFalloff),
+          lightHeight(other.lightHeight)
+    {
+        if (!m_shader.loadFromFile(ASSETS "/shaders/iluminacion.frag", sf::Shader::Type::Fragment))
+        {
+            // El error detallado ya es reportado por consola por SFML
+        }
+    }
+
+    void INormalMap::registrarNormalMap(const sf::Texture* difusa, sf::Texture* normal)
+    {
+        if (difusa && normal)
+        {
+            m_normalMaps[difusa] = normal;
+        }
+    }
+
+    sf::Texture* INormalMap::getNormalTexture(const sf::Texture* difusa) const
+    {
+        auto it = m_normalMaps.find(difusa);
+        if (it != m_normalMaps.end())
+        {
+            return it->second;
+        }
+        return nullptr;
+    }
 }
 
 
