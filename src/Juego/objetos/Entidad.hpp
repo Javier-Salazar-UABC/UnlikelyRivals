@@ -23,6 +23,10 @@ namespace IVJ
         {
             return nombre;
         }
+        const std::shared_ptr<CE::ITransform> getTransformada() const
+        {
+            return transform;
+        }
         const std::shared_ptr<CE::IStats> getStats() const
         {
             return stats;

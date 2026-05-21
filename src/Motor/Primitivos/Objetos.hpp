@@ -159,12 +159,20 @@ namespace CE
             {
                 return transform;
             }
+            std::shared_ptr<ITransform> getTransformada() const
+            {
+                return transform;
+            }
             
             /**
              * @brief Obtiene el componente de estadísticas del objeto.
              * @return Referencia al puntero compartido del componente IStats
              */
             std::shared_ptr<IStats>& getStats()
+            {
+                return stats;
+            }
+            std::shared_ptr<IStats> getStats() const
             {
                 return stats;
             }
