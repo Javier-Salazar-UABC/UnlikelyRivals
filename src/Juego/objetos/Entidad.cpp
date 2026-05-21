@@ -83,6 +83,15 @@ namespace IVJ
         {
             if(!getComponente<CE::IControl>())  return;
             auto control = *getComponente<CE::IControl>();
+
+            // Si está colgado del borde, no permitir atacar
+            if (tieneComponente<IGravedad>()) {
+                if (getComponente<IGravedad>()->colgado_borde) {
+                    control.acc = false;
+                    control.sacc = false;
+                }
+            }
+
             auto n_estado = mq->fsm->onInputs(*this, control);
             std::shared_ptr<FSM> estado(n_estado);
             if(estado)

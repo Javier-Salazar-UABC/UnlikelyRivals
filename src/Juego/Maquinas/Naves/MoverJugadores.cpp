@@ -3,6 +3,7 @@
 #include "SaltarJugador.hpp"
 #include "CorrerJugador.hpp"
 #include "GolpearJugador.hpp"
+#include "DownBJugador.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
 #include "../../Componentes/IJComponentes.hpp"
 namespace IVJ
@@ -17,6 +18,11 @@ namespace IVJ
     }
     FSM* MoverJugadores::onInputs(const Entidad& obj, const CE::IControl& control)
     {
+        if (control.abj && control.sacc) {
+            if (obj.tieneComponente<IAnimaciones>() && obj.getComponente<IAnimaciones>()->get("down_b")) {
+                return new DownBJugador();
+            }
+        }
         if (control.arr) {
             if (obj.tieneComponente<IGravedad>() && obj.getComponente<IGravedad>()->saltos_restantes > 0) {
                 return new SaltarJugador();

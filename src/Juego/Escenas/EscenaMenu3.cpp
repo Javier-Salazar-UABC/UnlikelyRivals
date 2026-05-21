@@ -20,57 +20,68 @@ namespace IVJ
 
     void EscenaMenu3::onInit()
     {
-        if (!inicializar) return;
+        if (inicializar) {
+            CE::GestorAssets::Get().agregarFont("p5_font", ASSETS "/fonts/Electrolize.ttf");
+            CE::GestorAssets::Get().agregarTextura("p5_player", ASSETS "/sprites/snoopy/esnupi_walk.png", {0, 0}, {0, 0});
+            CE::GestorAssets::Get().agregarTextura("p5_jeilo",  ASSETS "/sprites/master_chief/jeilo_walk.png", {0, 0}, {0, 0});
+            CE::GestorAssets::Get().agregarTextura("p5_goku",   ASSETS "/sprites/goku/goku_walk.png", {0, 0}, {0, 0});
 
-        CE::GestorAssets::Get().agregarFont("p5_font", ASSETS "/fonts/Electrolize.ttf");
-        CE::GestorAssets::Get().agregarTextura("p5_player", ASSETS "/sprites/esnupi_walk.png", {0, 0}, {0, 0});
-        CE::GestorAssets::Get().agregarTextura("p5_jeilo",  ASSETS "/sprites/jeilo_walk.png", {0, 0}, {0, 0});
-        CE::GestorAssets::Get().agregarTextura("p5_goku",   ASSETS "/sprites/goku_walk.png", {0, 0}, {0, 0});
+            CE::GestorAssets::Get().agregarSonido("goku_announcer", ASSETS "/sonidos/Announcer/GokuAnnouncer.mp3");
+            CE::GestorAssets::Get().agregarSonido("master_chief_announcer", ASSETS "/sonidos/Announcer/MasterChiefAnnouncer.mp3");
+            CE::GestorAssets::Get().agregarSonido("snoopy_announcer", ASSETS "/sonidos/Announcer/SnoopyAnnouncer.mp3");
 
+            CE::GestorAssets::Get().agregarMusica("menu_music", ASSETS "/musica/MenuMusic.ogg");
+            CE::GestorAssets::Get().getMusica("menu_music").setLooping(true);
 
-        setupBackground();
-        setupDecorations();
-        setupMenu();
-        setupModeSelect();
-        setupCharacterSelect();
+            setupBackground();
+            setupDecorations();
+            setupMenu();
+            setupModeSelect();
+            setupCharacterSelect();
 
+            currentItems = &mainItems;
 
-        currentItems = &mainItems;
+            registrarBotones(sf::Keyboard::Scancode::W, "up");
+            registrarBotones(sf::Keyboard::Scancode::S, "down");
+            registrarBotones(sf::Keyboard::Scancode::Enter, "select");
+            registrarBotones(sf::Keyboard::Scancode::Escape, "exit");
 
-        registrarBotones(sf::Keyboard::Scancode::W, "up");
-        registrarBotones(sf::Keyboard::Scancode::S, "down");
-        registrarBotones(sf::Keyboard::Scancode::Enter, "select");
-        registrarBotones(sf::Keyboard::Scancode::Escape, "exit");
+            // --- Mapeo de Control ---
+            for (int i = 0; i < 4; ++i)
+            {
+                registrarJoystickBoton(i, 0, "select");
+                registrarJoystickBoton(i, 1, "select");
+                registrarJoystickBoton(i, 2, "exit");
+                registrarJoystickBoton(i, 3, "select");
+                registrarJoystickBoton(i, 9, "select"); // Start en muchos controles
+                registrarJoystickEje(i, sf::Joystick::Axis::Y, "vertical");
+                registrarJoystickEje(i, sf::Joystick::Axis::PovY, "vertical");
+            }
 
-        // --- Mapeo de Control ---
-        for (int i = 0; i < 4; ++i)
-        {
-            registrarJoystickBoton(i, 0, "select");
-            registrarJoystickBoton(i, 1, "select");
-            registrarJoystickBoton(i, 2, "exit");
-            registrarJoystickBoton(i, 3, "select");
-            registrarJoystickBoton(i, 9, "select"); // Start en muchos controles
-            registrarJoystickEje(i, sf::Joystick::Axis::Y, "vertical");
-            registrarJoystickEje(i, sf::Joystick::Axis::PovY, "vertical");
+            updatePositions();
+            
+            if (!crepuscularShader.loadFromFile(ASSETS "/shaders/crepuscular.frag", sf::Shader::Type::Fragment)) {
+                // Manejar error si falla la carga
+            }
+            
+            sf::Vector2u winSize = CE::Render::Get().GetVentana().getSize();
+            crepuscularShader.setUniform("resolution", sf::Vector2f((float)winSize.x, (float)winSize.y));
+            
+            if (!occlusionTexture.resize(winSize)) {
+                // Manejar error
+            }
+            // Asegurar que la vista de la textura de oclusion coincida con la de la ventana
+            sf::View view(sf::FloatRect({0, 0}, {(float)winSize.x, (float)winSize.y}));
+            occlusionTexture.setView(view);
+
+            inicializar = false;
         }
 
-        updatePositions();
-        
-        if (!crepuscularShader.loadFromFile(ASSETS "/shaders/crepuscular.frag", sf::Shader::Type::Fragment)) {
-            // Manejar error si falla la carga
+        // Reproducir música del menú cada vez que se entra
+        auto& m = CE::GestorAssets::Get().getMusica("menu_music");
+        if (m.getStatus() != sf::SoundSource::Status::Playing) {
+            m.play();
         }
-        
-        sf::Vector2u winSize = CE::Render::Get().GetVentana().getSize();
-        crepuscularShader.setUniform("resolution", sf::Vector2f((float)winSize.x, (float)winSize.y));
-        
-        if (!occlusionTexture.resize(winSize)) {
-            // Manejar error
-        }
-        // Asegurar que la vista de la textura de oclusion coincida con la de la ventana
-        sf::View view(sf::FloatRect({0, 0}, {(float)winSize.x, (float)winSize.y}));
-        occlusionTexture.setView(view);
-
-        inicializar = false;
     }
 
     void EscenaMenu3::setupBackground()
@@ -403,9 +414,6 @@ namespace IVJ
 
         // --- Actualizar Shader ---
         crepuscularShader.setUniform("time", timer);
-        sf::Vector2i mousePos = sf::Mouse::getPosition(CE::Render::Get().GetVentana());
-        float winH = (float)CE::Render::Get().GetVentana().getSize().y;
-        crepuscularShader.setUniform("mouse", sf::Vector2f((float)mousePos.x, winH - (float)mousePos.y));
     }
 
     void EscenaMenu3::onInputs(const CE::Botones& accion)
@@ -449,6 +457,19 @@ namespace IVJ
                         PersonajeID id = PersonajeID::SNOOPY;
                         if (selected.text == "MASTER CHIEF") id = PersonajeID::MASTER_CHIEF;
                         if (selected.text == "GOKU") id = PersonajeID::GOKU;
+
+                        // Reproducir sonido del locutor (Announcer)
+                        std::string soundKey = "";
+                        if (id == PersonajeID::SNOOPY) soundKey = "snoopy_announcer";
+                        else if (id == PersonajeID::MASTER_CHIEF) soundKey = "master_chief_announcer";
+                        else if (id == PersonajeID::GOKU) soundKey = "goku_announcer";
+
+                        if (!soundKey.empty()) {
+                            sf::Sound& s = CE::GestorAssets::Get().getSonido(soundKey);
+                            s.setVolume(50.f); // Subir volumen del locutor a 50%
+                            s.setPlayingOffset(sf::seconds(0));
+                            s.play();
+                        }
 
                         if (selectionStep == 0) {
                             Globales::p1_seleccionado = id;
@@ -586,5 +607,8 @@ namespace IVJ
         if (titleText) CE::Render::Get().AddToDraw(*titleText);
     }
 
-    void EscenaMenu3::onFinal() {}
+    void EscenaMenu3::onFinal()
+    {
+        CE::GestorAssets::Get().getMusica("menu_music").stop();
+    }
 }

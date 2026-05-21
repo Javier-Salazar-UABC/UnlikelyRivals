@@ -21,7 +21,7 @@ namespace IVJ
         if (!inicializar) return;
 
         CE::GestorAssets::Get().agregarFont("p5_font", ASSETS "/fonts/Electrolize.ttf");
-        CE::GestorAssets::Get().agregarTextura("p5_player", ASSETS "/sprites/esnupi_walk.png", {0, 0}, {0, 0});
+        CE::GestorAssets::Get().agregarTextura("p5_player", ASSETS "/sprites/snoopy/esnupi_walk.png", {0, 0}, {0, 0});
 
         setupBackground();
         setupDecorations();

@@ -52,10 +52,15 @@ namespace CE
             std::cerr<<"No se pudo cargar la Sonido "<<filepath<<"\n";
         
         hashBuffers[key] = buffer;
-        hashSonidos[key] = std::make_shared<sf::Sound>(*buffer);
+        auto sound = std::make_shared<sf::Sound>(*buffer);
+        sound->setVolume(10.f); // Bajar volumen de los efectos al 50%
+        hashSonidos[key] = sound;
     }
     void GestorAssets::agregarMusica(const std::string& key, const std::string& filepath)
     {   
+        if(hashMusica.find(key) != hashMusica.end())
+            return;
+
         auto musica = std::make_shared<sf::Music>();
         if(!musica->openFromFile(filepath))
             std::cerr<<"No se pudo cargar la Música "<<filepath<<"\n";

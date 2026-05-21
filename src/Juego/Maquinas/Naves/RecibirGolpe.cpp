@@ -69,6 +69,17 @@ namespace IVJ
         auto& entity_mutable = const_cast<Entidad&>(obj);
         auto trans = entity_mutable.getTransformada();
         if (trans) {
+            // Directional Influence (DI estilo Smash Bros): 
+            // Permite influir levemente la trayectoria de vuelo al mantener izquierda/derecha durante el hitstun
+            auto control = obj.getComponente<CE::IControl>();
+            if (control && control->isActivo() && stats->hitstun_timer > 0.0f) {
+                if (control->izq) {
+                    trans->velocidad.x -= 250.0f * dt; // Deriva hacia la izquierda
+                } else if (control->der) {
+                    trans->velocidad.x += 250.0f * dt; // Deriva hacia la derecha
+                }
+            }
+
             // Aplicar fricción al movimiento horizontal (0.99 es más suave que 0.96)
             trans->velocidad.x *= std::pow(0.99f, dt * 60.0f);
         }

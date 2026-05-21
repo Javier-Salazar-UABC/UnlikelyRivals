@@ -395,6 +395,16 @@ namespace IVJ
         bool en_suelo;
         int saltos_restantes;
 
+        // Ledge Grab (Colgarse del borde)
+        bool colgado_borde{false};
+        float ledge_grab_cooldown{0.0f};
+
+        // Atravesar plataformas flotantes
+        float atravesar_timer{0.0f};
+        float tiempo_ultimo_abajo{999.0f};
+        bool abajo_prev{false};
+        float Y_inicial_traspaso{0.0f};
+
         std::shared_ptr<IComponentes> clonar() const override
         {
             return std::make_shared<IGravedad>(*this);

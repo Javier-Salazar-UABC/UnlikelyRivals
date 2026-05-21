@@ -24,9 +24,9 @@ namespace IVJ
         static constexpr int   FRAME_H      = 32;     
 
         // ─── Rutas de sprites ───────────────────────────────────────────────
-        static constexpr const char* SPR_WALK  = ASSETS "/sprites/jeilo_walk.png";
+        static constexpr const char* SPR_WALK  = ASSETS "/sprites/master_chief/jeilo_walk.png";
         // Por ahora reutilizamos walk para otras animaciones si no hay más
-        static constexpr const char* SPR_IDLE  = ASSETS "/sprites/jeilo_walk.png";
+        static constexpr const char* SPR_IDLE  = ASSETS "/sprites/master_chief/jeilo_walk.png";
 
         // ─── Frame counts ───────────────────────────────────────────────────
         static constexpr int FRAMES_WALK  = 4;

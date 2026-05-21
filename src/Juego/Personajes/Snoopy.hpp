@@ -38,12 +38,13 @@ namespace IVJ
         static constexpr int   FRAME_H      = 20;     ///< Alto de un frame (px)
 
         // ─── Rutas de sprites ───────────────────────────────────────────────
-        static constexpr const char* SPR_WALK  = ASSETS "/sprites/esnupi_walk.png";
-        static constexpr const char* SPR_RUN   = ASSETS "/sprites/esnupi_run.png";
-        static constexpr const char* SPR_JUMP  = ASSETS "/sprites/esnupi_jump.png";
-        static constexpr const char* SPR_IDLE  = ASSETS "/sprites/esnupi_idle.png";
-        static constexpr const char* SPR_PUNCH = ASSETS "/sprites/esnupi_punch.png";
-        static constexpr const char* SPR_KICK  = ASSETS "/sprites/esnupi_kick.png";
+        static constexpr const char* SPR_WALK  = ASSETS "/sprites/snoopy/esnupi_walk.png";
+        static constexpr const char* SPR_RUN   = ASSETS "/sprites/snoopy/esnupi_run.png";
+        static constexpr const char* SPR_JUMP  = ASSETS "/sprites/snoopy/esnupi_jump.png";
+        static constexpr const char* SPR_IDLE  = ASSETS "/sprites/snoopy/esnupi_idle.png";
+        static constexpr const char* SPR_PUNCH = ASSETS "/sprites/snoopy/esnupi_punch.png";
+        static constexpr const char* SPR_KICK  = ASSETS "/sprites/snoopy/esnupi_kick.png";
+        static constexpr const char* SPR_DOWN_B = ASSETS "/sprites/snoopy/esnupi_down-B.png";
 
         // ─── Frame counts por animación ─────────────────────────────────────
         static constexpr int FRAMES_WALK  = 4;
@@ -52,6 +53,7 @@ namespace IVJ
         static constexpr int FRAMES_IDLE  = 4;
         static constexpr int FRAMES_PUNCH = 4;
         static constexpr int FRAMES_KICK  = 4;
+        static constexpr int FRAMES_DOWN_B = 6;
 
         /**
          * @brief Registra todas las texturas del personaje en el GestorAssets.
@@ -70,6 +72,7 @@ namespace IVJ
             assets.agregarTextura("esnupi_idle",  SPR_IDLE,  V2{0,0}, V2{(float)(FRAME_W * FRAMES_IDLE),  (float)FRAME_H});
             assets.agregarTextura("esnupi_punch", SPR_PUNCH, V2{0,0}, V2{(float)(FRAME_W * FRAMES_PUNCH), (float)FRAME_H});
             assets.agregarTextura("esnupi_kick",  SPR_KICK,  V2{0,0}, V2{(float)(FRAME_W * FRAMES_KICK),  (float)FRAME_H});
+            assets.agregarTextura("esnupi_down_b", SPR_DOWN_B, V2{0,0}, V2{(float)(40 * FRAMES_DOWN_B), 40.f});
         }
 
         /**
@@ -102,6 +105,7 @@ namespace IVJ
             anim->set("punch", "esnupi_punch", FRAMES_PUNCH, 0.1f);
             anim->set("kick",  "esnupi_kick",  FRAMES_KICK,  0.1f);
             anim->set("hit",   "esnupi_jump",  FRAMES_JUMP,  0.1f); // Reusar salto para hit
+            anim->set("down_b", "esnupi_down_b", FRAMES_DOWN_B, 0.1f, 40, 40);
 
             entidad->addComponente(std::make_shared<CE::IControl>());
             entidad->addComponente(std::make_shared<CE::IBoundingBox>(

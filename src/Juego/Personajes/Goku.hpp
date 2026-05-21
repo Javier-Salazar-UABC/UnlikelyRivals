@@ -25,8 +25,8 @@ namespace IVJ
 
 
         // ─── Rutas de sprites ───────────────────────────────────────────────
-        static constexpr const char* SPR_WALK   = ASSETS "/sprites/goku_walk.png";
-        static constexpr const char* SPR_ATTACK = ASSETS "/sprites/goku_attack.png";
+        static constexpr const char* SPR_WALK   = ASSETS "/sprites/goku/goku_walk.png";
+        static constexpr const char* SPR_ATTACK = ASSETS "/sprites/goku/goku_attack.png";
 
         // ─── Frame counts ───────────────────────────────────────────────────
         static constexpr int FRAMES_WALK   = 4; 

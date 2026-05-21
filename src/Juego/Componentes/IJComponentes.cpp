@@ -250,7 +250,7 @@ namespace IVJ
     }
 
     IGravedad::IGravedad(float fuerza, float max_vel)
-        : CE::IComponentes{}, fuerza{fuerza}, max_vel{max_vel}, velocidad_Y{0.0f}, en_suelo{false}, saltos_restantes{2}
+        : CE::IComponentes{}, fuerza{fuerza}, max_vel{max_vel}, velocidad_Y{0.0f}, en_suelo{false}, saltos_restantes{2}, colgado_borde{false}, ledge_grab_cooldown{0.0f}, atravesar_timer{0.0f}, tiempo_ultimo_abajo{999.0f}, abajo_prev{false}, Y_inicial_traspaso{0.0f}
     {
     }
 

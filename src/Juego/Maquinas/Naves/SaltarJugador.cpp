@@ -1,6 +1,7 @@
 #include "SaltarJugador.hpp"
 #include "IdleJugadores.hpp"
 #include "MoverJugadores.hpp"
+#include "DownBJugador.hpp"
 #include "../../Componentes/IJComponentes.hpp"
 #include "../../Sistemas/Sistemas.hpp"
 #include "CorrerJugador.hpp"
@@ -18,6 +19,11 @@ namespace IVJ
     }
     FSM* SaltarJugador::onInputs(const Entidad& obj, const CE::IControl& control)
     {
+        if (control.abj && control.sacc) {
+            if (obj.tieneComponente<IAnimaciones>() && obj.getComponente<IAnimaciones>()->get("down_b")) {
+                return new DownBJugador();
+            }
+        }
         // Si tocamos el suelo y ya terminó la animación de aterrizaje, salimos del estado
         if (aterrizando && tiempo_aterrizaje <= 0.0f) {
             if (control.der || control.izq || control.abj) {

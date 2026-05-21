@@ -13,6 +13,7 @@
 #include "Motor/Camaras/CamarasGestor.hpp"
 #include "Juego/Maquinas/Naves/PatearJugador.hpp"
 #include "Juego/Maquinas/Naves/RecibirGolpe.hpp"
+#include "Juego/Maquinas/Naves/DownBJugador.hpp"
 #include "Motor/Primitivos/GestorAssets.hpp"
 #include <memory>
 #include <vector>
@@ -61,6 +62,116 @@ namespace IVJ
         auto control = objeto->getComponente<CE::IControl>();
         auto grav = objeto->getComponente<IGravedad>();
 
+        if (grav) {
+            // Decrementar cooldown de ledge grab
+            if (grav->ledge_grab_cooldown > 0.0f) {
+                grav->ledge_grab_cooldown -= dt;
+            }
+
+            // Si está colgado del borde
+            if (grav->colgado_borde) {
+                // Forzar velocidad a cero
+                trans->velocidad = {0.f, 0.f};
+                grav->velocidad_Y = 0.f;
+
+                if (control && control->isActivo()) {
+                    // Delays/Ledge Lag fiel a Smash Bros: no se puede soltar ni subir de inmediato (tiempo mínimo de colgado)
+                    if (grav->ledge_grab_cooldown <= 0.0f) {
+                        // 1) Soltarse con ABAJO o presionando hacia afuera del escenario
+                        bool soltarseIzq = (std::abs(trans->posicion.x - 183.0f) < 50.0f && control->izq);
+                        bool soltarseDer = (std::abs(trans->posicion.x - 942.0f) < 50.0f && control->der);
+                        if (control->abj || soltarseIzq || soltarseDer) {
+                            grav->colgado_borde = false;
+                            grav->ledge_grab_cooldown = 0.4f; // Evitar reconexión inmediata
+                            grav->saltos_restantes = 1;      // Conservar salto doble en el aire al soltarse
+                            ReproducirSonidoAleatorio("swing", 5); // Sonido de soltarse
+                            return;
+                        }
+                        // 2) Saltar desde el borde
+                        if (control->jmp) {
+                            grav->colgado_borde = false;
+                            grav->velocidad_Y = -350.0f; // Salto vertical fuerte
+                            grav->saltos_restantes = 1;  // Permite un salto doble en el aire
+                            grav->ledge_grab_cooldown = 0.5f;
+                            ReproducirSonidoAleatorio("jump", 5, false); // Sonido de salto
+                            return;
+                        }
+                        // 3) Subir al escenario con ARRIBA o la dirección hacia adentro
+                        // Borde izquierdo (183.0f): subir con DERECHA o ARRIBA
+                        // Borde derecho (942.0f): subir con IZQUIERDA o ARRIBA
+                        bool subirIzq = (std::abs(trans->posicion.x - 183.0f) < 50.0f && (control->der || control->arr));
+                        bool subirDer = (std::abs(trans->posicion.x - 942.0f) < 50.0f && (control->izq || control->arr));
+                        if (subirIzq || subirDer) {
+                            grav->colgado_borde = false;
+                            grav->ledge_grab_cooldown = 0.6f;
+                            if (subirIzq) {
+                                trans->posicion.x = 183.0f + 25.0f;
+                                trans->posicion.y = 429.0f - 40.0f;
+                            } else {
+                                trans->posicion.x = 942.0f - 25.0f;
+                                trans->posicion.y = 255.0f - 40.0f;
+                            }
+                            grav->en_suelo = true;
+                            grav->saltos_restantes = 2;
+                            ReproducirSonidoAleatorio("swing", 5); // Sonido de subir
+                            return;
+                        }
+                        // 4) Ledge Attack (Ataque desde el borde con Punch o Kick)
+                        if (control->acc || control->sacc) {
+                            grav->colgado_borde = false;
+                            grav->ledge_grab_cooldown = 0.6f;
+                            bool isLeft = (std::abs(trans->posicion.x - 183.0f) < 50.0f);
+                            if (isLeft) {
+                                trans->posicion.x = 183.0f + 25.0f;
+                                trans->posicion.y = 429.0f - 40.0f;
+                            } else {
+                                trans->posicion.x = 942.0f - 25.0f;
+                                trans->posicion.y = 255.0f - 40.0f;
+                            }
+                            grav->en_suelo = true;
+                            grav->saltos_restantes = 2;
+                            // En el próximo frame, la FSM del jugador detectará control->acc o control->sacc y atacará
+                            return;
+                        }
+                    }
+                }
+                return; // No mover más mientras esté colgado
+            }
+
+            // Intentar colgarse si está en el aire, cayendo y no tiene cooldown
+            auto stats = objeto->getStats();
+            bool en_hitstun = (stats && stats->hitstun_timer > 0.0f);
+
+            if (!grav->en_suelo && grav->velocidad_Y > 30.0f && grav->ledge_grab_cooldown <= 0.0f && !en_hitstun) {
+                // Ledge Izquierdo del mapa: X=183.0f, Y=429.0f
+                // Solo agarrar si no se está presionando IZQUIERDA o ABAJO (para evitar atorarse al caminar o fast-fall)
+                if (std::abs(trans->posicion.x - 183.0f) < 25.0f && std::abs(trans->posicion.y - 429.0f) < 35.0f) {
+                    if (!control || (!control->izq && !control->abj)) {
+                        grav->colgado_borde = true;
+                        grav->velocidad_Y = 0.0f;
+                        trans->velocidad = {0.f, 0.f};
+                        trans->posicion.x = 183.0f;
+                        trans->posicion.y = 429.0f;
+                        grav->ledge_grab_cooldown = 0.35f; // Ledge lag mínimo (delay de colgado fiel a Smash)
+                        return;
+                    }
+                }
+                // Ledge Derecho del mapa: X=942.0f, Y=255.0f (Hanging height updated to Y=261.0f for 6px offset)
+                // Solo agarrar si no se está presionando DERECHA o ABAJO (para evitar atorarse al caminar o fast-fall)
+                if (std::abs(trans->posicion.x - 942.0f) < 25.0f && std::abs(trans->posicion.y - 255.0f) < 35.0f) {
+                    if (!control || (!control->der && !control->abj)) {
+                        grav->colgado_borde = true;
+                        grav->velocidad_Y = 0.0f;
+                        trans->velocidad = {0.f, 0.f};
+                        trans->posicion.x = 942.0f;
+                        trans->posicion.y = 261.0f;
+                        grav->ledge_grab_cooldown = 0.35f; // Ledge lag mínimo (delay de colgado fiel a Smash)
+                        return;
+                    }
+                }
+            }
+        }
+
         float move_speed = 150.0f; // Velocidad base de caminata
         float vel_x_final = 0.0f;
 
@@ -93,6 +204,12 @@ namespace IVJ
 
     bool SistemaColAABB(CE::Objeto& A, CE::Objeto& B, bool resolucion)
     {
+        // Si alguno de los dos está colgado del borde, no hay colisiones físicas
+        if (A.tieneComponente<IGravedad>() && A.getComponente<IGravedad>()->colgado_borde)
+            return false;
+        if (B.tieneComponente<IGravedad>() && B.getComponente<IGravedad>()->colgado_borde)
+            return false;
+
         if(!A.tieneComponente<CE::IBoundingBox>() || !B.tieneComponente<CE::IBoundingBox>())
             return false;
         auto boxA = A.getComponente<CE::IBoundingBox>();
@@ -116,8 +233,71 @@ namespace IVJ
         float penY = sumMidY - dY;
         bool hay_colision = penX > 0 && penY > 0;
 
+        // Comprobación de Plataforma Unidireccional (Semisólida)
+        bool esPlataformaFlotante = false;
+        if (B.tieneComponente<CE::INombre>()) {
+            if (B.getComponente<CE::INombre>()->nombre == "plataforma_flotante") {
+                esPlataformaFlotante = true;
+            }
+        }
+
+        if (esPlataformaFlotante) {
+            float topB = pb.y - mB.y;
+            if (A.tieneComponente<IGravedad>()) {
+                auto grav = A.getComponente<IGravedad>();
+                if (grav->atravesar_timer > 0.0f) {
+                    if (topB <= grav->Y_inicial_traspaso + mA.y + 20.0f) {
+                        return false;
+                    }
+                }
+            }
+            float prevBottomA = prevA.y + mA.y;
+            bool vieneArriba = prevBottomA <= topB + 8.f;
+            
+            bool cayendo = true;
+            if (A.tieneComponente<IGravedad>()) {
+                cayendo = A.getComponente<IGravedad>()->velocidad_Y >= 0.0f;
+            } else {
+                cayendo = A.getTransformada()->velocidad.y >= 0.0f;
+            }
+
+            if (hay_colision && vieneArriba && cayendo) {
+                if (resolucion) {
+                    pa->y -= (penY + 0.01f);
+                    if (A.tieneComponente<IGravedad>()) {
+                        auto grav = A.getComponente<IGravedad>();
+                        grav->velocidad_Y = 0.0f;
+                        grav->en_suelo = true;
+                        grav->saltos_restantes = 2;
+                        grav->atravesar_timer = 0.0f;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
         if(hay_colision && resolucion) {
-            if (penX < penY) {
+            // STEP UP LOGIC
+            float bottomA = pa->y + mA.y;
+            float topB = pb.y - mB.y;
+            float stepHeight = bottomA - topB;
+            bool isStep = (stepHeight > 0.0f && stepHeight <= 25.0f);
+
+            if (penX < penY && isStep) {
+                // Resolución Vertical Forzada (Subir escalón)
+                pa->y -= (penY + 0.01f);
+                if (A.tieneComponente<IGravedad>()) {
+                    auto grav = A.getComponente<IGravedad>();
+                    if (grav->velocidad_Y >= 0) {
+                        grav->velocidad_Y = 0.0f;
+                        grav->en_suelo = true;
+                        grav->saltos_restantes = 2;
+                        grav->atravesar_timer = 0.0f;
+                    }
+                }
+            }
+            else if (penX < penY) {
                 // Resolución Lateral
                 if (pa->x < pb.x) pa->x -= (penX + 0.01f);
                 else pa->x += (penX + 0.01f);
@@ -150,6 +330,12 @@ namespace IVJ
 
     bool SistemaColAABBMid(CE::Objeto& A, CE::Objeto& B, bool resolucion)
     {
+        // Si alguno de los dos está colgado del borde, no hay colisiones físicas
+        if (A.tieneComponente<IGravedad>() && A.getComponente<IGravedad>()->colgado_borde)
+            return false;
+        if (B.tieneComponente<IGravedad>() && B.getComponente<IGravedad>()->colgado_borde)
+            return false;
+
         if(!A.tieneComponente<CE::IBoundingBox>() || !B.tieneComponente<CE::IBoundingBox>())
             return false;
         auto boxA = A.getComponente<CE::IBoundingBox>();
@@ -172,9 +358,72 @@ namespace IVJ
         float penX = sumMidX - dX;
         float penY = sumMidY - dY;
         bool hay_colision = penX > 0 && penY > 0;
+
+        // Comprobación de Plataforma Unidireccional (Semisólida)
+        bool esPlataformaFlotante = false;
+        if (B.tieneComponente<CE::INombre>()) {
+            if (B.getComponente<CE::INombre>()->nombre == "plataforma_flotante") {
+                esPlataformaFlotante = true;
+            }
+        }
+
+        if (esPlataformaFlotante) {
+            float topB = pb->y - midB.y;
+            if (A.tieneComponente<IGravedad>()) {
+                auto grav = A.getComponente<IGravedad>();
+                if (grav->atravesar_timer > 0.0f) {
+                    if (topB <= grav->Y_inicial_traspaso + midA.y + 20.0f) {
+                        return false;
+                    }
+                }
+            }
+            float prevBottomA = prevA.y + midA.y;
+            bool vieneArriba = prevBottomA <= topB + 8.f;
+            
+            bool cayendo = true;
+            if (A.tieneComponente<IGravedad>()) {
+                cayendo = A.getComponente<IGravedad>()->velocidad_Y >= 0.0f;
+            } else {
+                cayendo = A.getTransformada()->velocidad.y >= 0.0f;
+            }
+
+            if (hay_colision && vieneArriba && cayendo) {
+                if (resolucion) {
+                    pa->y -= (penY + 0.01f);
+                    if (A.tieneComponente<IGravedad>()) {
+                        auto grav = A.getComponente<IGravedad>();
+                        grav->velocidad_Y = 0.0f;
+                        grav->en_suelo = true;
+                        grav->saltos_restantes = 2;
+                        grav->atravesar_timer = 0.0f;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
         
         if (resolucion && hay_colision) {
-            if (penX < penY) { 
+            // STEP UP LOGIC para escalar rampas o escalones pequeños suavemente
+            float bottomA = pa->y + midA.y;
+            float topB = pb->y - midB.y;
+            float stepHeight = bottomA - topB;
+            bool isStep = (stepHeight > 0.0f && stepHeight <= 25.0f);
+
+            if (penX < penY && isStep) {
+                // Resolución Vertical Forzada (Subir escalón)
+                pa->y -= (penY + 0.01f);
+                if (A.tieneComponente<IGravedad>()) {
+                    auto grav = A.getComponente<IGravedad>();
+                    if (grav->velocidad_Y >= 0) {
+                        grav->velocidad_Y = 0.0f;
+                        grav->en_suelo = true;
+                        grav->saltos_restantes = 2;
+                        grav->atravesar_timer = 0.0f;
+                    }
+                }
+            }
+            else if (penX < penY) { 
                 // Resolución Lateral
                 if (pa->x < pb->x) pa->x -= (penX + 0.01f);
                 else pa->x += (penX + 0.01f);
@@ -190,6 +439,7 @@ namespace IVJ
                             grav->velocidad_Y = 0.0f;
                             grav->en_suelo = true;
                             grav->saltos_restantes = 2;
+                            grav->atravesar_timer = 0.0f;
                         }
                     }
                 } else {
@@ -390,10 +640,54 @@ namespace IVJ
         auto transform = objeto->getTransformada();
         if(!transform) return;
 
+        auto control = objeto->getComponente<CE::IControl>();
+
+        // Actualizar temporizadores para atravesar plataformas
+        if (gravedad->atravesar_timer > 0.0f) {
+            gravedad->atravesar_timer -= dt;
+        }
+        if (gravedad->tiempo_ultimo_abajo < 999.0f) {
+            gravedad->tiempo_ultimo_abajo += dt;
+        }
+
+        // Detectar doble toque hacia abajo
+        if (control && control->isActivo()) {
+            bool abajo_presionado = control->abj;
+            bool rising_edge = abajo_presionado && !gravedad->abajo_prev;
+            gravedad->abajo_prev = abajo_presionado;
+
+            if (rising_edge) {
+                if (gravedad->tiempo_ultimo_abajo <= 0.3f) { // Umbral de 0.3 segundos para doble toque
+                    gravedad->atravesar_timer = 0.35f; // Ignorar colisión durante 0.35 segundos
+                    gravedad->tiempo_ultimo_abajo = 999.0f; // Resetear
+                    gravedad->velocidad_Y = 100.0f; // Impulso inicial hacia abajo para pasar rápido
+                    gravedad->en_suelo = false;
+                    gravedad->Y_inicial_traspaso = transform->posicion.y; // Registrar altura de inicio
+                } else {
+                    gravedad->tiempo_ultimo_abajo = 0.0f;
+                }
+            }
+        } else {
+            gravedad->abajo_prev = false;
+        }
+
+        // Si está colgado del borde, no aplicar gravedad ni acumular velocidad
+        if (gravedad->colgado_borde) {
+            gravedad->velocidad_Y = 0.0f;
+            return;
+        }
+
         gravedad->en_suelo = false;
 
         float fuerza_actual = gravedad->fuerza;
         
+        // Fast Falling (Caída Rápida estilo Smash): presionar ABAJO en el aire mientras se cae
+        if (control && control->isActivo() && !gravedad->en_suelo && gravedad->velocidad_Y >= 0.0f) {
+            if (control->abj) {
+                fuerza_actual *= 1.7f; // Aceleración de caída aumentada en un 70%
+            }
+        }
+
         // Reducir gravedad durante el hitstun para un efecto más "flotante"
         if (objeto->tieneComponente<CE::IStats>()) {
             if (objeto->getComponente<CE::IStats>()->hitstun_timer > 0) {
@@ -424,8 +718,9 @@ namespace IVJ
 
         bool isPunch = (maquina_estado->fsm->getNombre() == "GolpearJugador");
         bool isKick  = (maquina_estado->fsm->getNombre() == "PatearJugador");
+        bool isDownB = (maquina_estado->fsm->getNombre() == "DownBJugador");
 
-        if (!isPunch && !isKick) return;
+        if (!isPunch && !isKick && !isDownB) return;
 
         bool hitbox_activa = false;
         bool golpe_procesado = false;
@@ -434,10 +729,14 @@ namespace IVJ
             auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
             hitbox_activa = gj->hitbox_activa;
             golpe_procesado = gj->golpe_procesado;
-        } else {
+        } else if (isKick) {
             auto pj = dynamic_cast<PatearJugador*>(maquina_estado->fsm.get());
             hitbox_activa = pj->hitbox_activa;
             golpe_procesado = pj->golpe_procesado;
+        } else if (isDownB) {
+            auto dbj = dynamic_cast<DownBJugador*>(maquina_estado->fsm.get());
+            hitbox_activa = dbj->hitbox_activa;
+            golpe_procesado = dbj->golpe_procesado;
         }
 
         if (!hitbox_activa || golpe_procesado) return;
@@ -446,11 +745,22 @@ namespace IVJ
         auto sprite = jugador->getComponente<CE::ISprite>();
         float dir   = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
 
-        const float hitW = isKick ? 30.f : 20.f; 
-        const float hitH = isKick ? 20.f : 15.f; 
+        float hitW = 20.f;
+        float hitH = 15.f;
+        if (isKick) {
+            hitW = 30.f;
+            hitH = 20.f;
+        } else if (isDownB) {
+            hitW = 40.f;
+            hitH = 30.f;
+        }
 
         CE::Vector2D centro_hitbox = trans->posicion;
-        centro_hitbox.x += dir * (hitW + 5.f);
+        if (isDownB) {
+            centro_hitbox.y += 20.f;
+        } else {
+            centro_hitbox.x += dir * (hitW + 5.f);
+        }
 
         // Obtener multiplicador de fuerza del atacante
         float mult_atacante = jugador->getStats()->multiplicador_fuerza;
@@ -470,7 +780,13 @@ namespace IVJ
             if ((dX < hitW + midObj.x) && (dY < hitH + midObj.y))
             {
                 auto& stats_victima = obj->getStats();
-                float danio_base = isKick ? 5.0f : 1.2f; // Daño mucho más reducido
+                float danio_base = 1.2f;
+                if (isKick) {
+                    danio_base = 5.0f;
+                } else if (isDownB) {
+                    danio_base = 12.0f;
+                }
+                
                 stats_victima->porcentaje_danio += danio_base * mult_atacante;
                 stats_victima->hit_count++;
 
@@ -481,8 +797,15 @@ namespace IVJ
                     ReproducirSonidoAleatorio("melee", 11, false); // Normal
                 }
 
-                float fuerza_base_H = isKick ? 400.0f : 30.0f; 
-                float fuerza_base_V = isKick ? 150.0f : 40.0f;
+                float fuerza_base_H = 30.0f;
+                float fuerza_base_V = 40.0f;
+                if (isKick) {
+                    fuerza_base_H = 400.0f;
+                    fuerza_base_V = 150.0f;
+                } else if (isDownB) {
+                    fuerza_base_H = 650.0f;
+                    fuerza_base_V = 450.0f;
+                }
                 
                 float multiplicador_smash = (1.0f + (stats_victima->porcentaje_danio / 100.0f));
 
@@ -492,6 +815,8 @@ namespace IVJ
                 if (grav) {
                     grav->velocidad_Y = -fuerza_base_V * multiplicador_smash * mult_atacante;
                     grav->en_suelo = false;
+                    grav->colgado_borde = false; // Liberarse del borde al ser golpeado
+                    grav->ledge_grab_cooldown = 0.5f; // Cooldown para evitar re-agarre inmediato
                 }
 
                 // --- SISTEMA DE HITSTUN (SMASH BROS STYLE) ---
@@ -514,7 +839,8 @@ namespace IVJ
                 }
 
                 if (isPunch) dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get())->golpe_procesado = true;
-                else dynamic_cast<PatearJugador*>(maquina_estado->fsm.get())->golpe_procesado = true;
+                else if (isKick) dynamic_cast<PatearJugador*>(maquina_estado->fsm.get())->golpe_procesado = true;
+                else if (isDownB) dynamic_cast<DownBJugador*>(maquina_estado->fsm.get())->golpe_procesado = true;
                 
                 break; // Solo golpear a un enemigo por frame para evitar sonidos duplicados
             }
@@ -529,7 +855,8 @@ namespace IVJ
 
         bool isPunch = (maquina_estado->fsm->getNombre() == "GolpearJugador");
         bool isKick  = (maquina_estado->fsm->getNombre() == "PatearJugador");
-        if (!isPunch && !isKick) return;
+        bool isDownB = (maquina_estado->fsm->getNombre() == "DownBJugador");
+        if (!isPunch && !isKick && !isDownB) return;
 
         bool activa = false;
         bool procesado = false;
@@ -537,10 +864,14 @@ namespace IVJ
             auto gj = dynamic_cast<GolpearJugador*>(maquina_estado->fsm.get());
             activa = gj->hitbox_activa;
             procesado = gj->golpe_procesado;
-        } else {
+        } else if (isKick) {
             auto pj = dynamic_cast<PatearJugador*>(maquina_estado->fsm.get());
             activa = pj->hitbox_activa;
             procesado = pj->golpe_procesado;
+        } else if (isDownB) {
+            auto dbj = dynamic_cast<DownBJugador*>(maquina_estado->fsm.get());
+            activa = dbj->hitbox_activa;
+            procesado = dbj->golpe_procesado;
         }
 
         if (!activa) return;
@@ -549,11 +880,22 @@ namespace IVJ
         auto sprite = jugador->getComponente<CE::ISprite>();
         float dir = (sprite->m_sprite.getScale().x > 0) ? 1.0f : -1.0f;
 
-        const float hitW = isKick ? 30.f : 20.f; 
-        const float hitH = isKick ? 20.f : 15.f; 
+        float hitW = 20.f;
+        float hitH = 15.f;
+        if (isKick) {
+            hitW = 30.f;
+            hitH = 20.f;
+        } else if (isDownB) {
+            hitW = 40.f;
+            hitH = 30.f;
+        }
 
         CE::Vector2D centro = trans->posicion;
-        centro.x += dir * (hitW + 5.f);
+        if (isDownB) {
+            centro.y += 20.f;
+        } else {
+            centro.x += dir * (hitW + 5.f);
+        }
 
         sf::RectangleShape debug_hitbox(sf::Vector2f(hitW * 2.f, hitH * 2.f));
         debug_hitbox.setOrigin(sf::Vector2f(hitW, hitH));
@@ -945,6 +1287,13 @@ namespace IVJ
             std::string path = ASSETS "/sonidos/jump/FGHTMisc_Anime Jump " + std::to_string(i) + ".wav";
             assets.agregarSonido("jump_" + std::to_string(i), path);
         }
+
+        // Cargar 321GO countdown
+        assets.agregarSonido("321go", ASSETS "/sonidos/321GO.wav");
+
+        // Cargar música de Dragon Ball
+        assets.agregarMusica("dragonball_ost", ASSETS "/musica/DragonBallOST.ogg");
+        assets.getMusica("dragonball_ost").setLooping(true);
     }
 
     void SistemaUpdateAudio(float dt)
